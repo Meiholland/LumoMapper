@@ -112,11 +112,16 @@ export async function grantAdminRole(email: string) {
       },
     });
 
-    // Find user by email
-    const { data: authUser, error: authError } =
-      await adminClient.auth.admin.getUserByEmail(email);
+    // Find user by email - list users and filter
+    const { data: usersData, error: listError } = await adminClient.auth.admin.listUsers();
+    
+    if (listError) {
+      return { error: `Failed to list users: ${listError.message}` };
+    }
 
-    if (authError || !authUser?.user) {
+    const authUser = usersData?.users?.find((u) => u.email?.toLowerCase() === email.toLowerCase());
+
+    if (!authUser) {
       return { error: "User not found. They must sign up first." };
     }
 
@@ -124,7 +129,7 @@ export async function grantAdminRole(email: string) {
     const { error: updateError } = await supabase
       .from("users")
       .update({ role: "admin" })
-      .eq("auth_user_id", authUser.user.id);
+      .eq("auth_user_id", authUser.id);
 
     if (updateError) {
       return { error: updateError.message };
@@ -172,11 +177,16 @@ export async function revokeAdminRole(email: string) {
       },
     });
 
-    // Find user by email
-    const { data: authUser, error: authError } =
-      await adminClient.auth.admin.getUserByEmail(email);
+    // Find user by email - list users and filter
+    const { data: usersData, error: listError } = await adminClient.auth.admin.listUsers();
+    
+    if (listError) {
+      return { error: `Failed to list users: ${listError.message}` };
+    }
 
-    if (authError || !authUser?.user) {
+    const authUser = usersData?.users?.find((u) => u.email?.toLowerCase() === email.toLowerCase());
+
+    if (!authUser) {
       return { error: "User not found" };
     }
 
@@ -184,7 +194,7 @@ export async function revokeAdminRole(email: string) {
     const { error: updateError } = await supabase
       .from("users")
       .update({ role: "member" })
-      .eq("auth_user_id", authUser.user.id);
+      .eq("auth_user_id", authUser.id);
 
     if (updateError) {
       return { error: updateError.message };
