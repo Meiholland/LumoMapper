@@ -1,0 +1,219 @@
+{
+  "BUSINESS CONCEPT & MARKET": {
+    "Value proposition": [
+      "We have a clear and compelling value proposition that addresses our customers' most significant pains and needs",
+      "We have strong evidence showing direct link between value prop and the customer's willingness to pay",
+      "Our value proposition is differentiated from competitors"
+    ],
+    "Business model": [
+      "Our business model is clearly documented through a business canvas",
+      "We have identified and tested scalable revenue streams that can grow over time",
+      "We have predictable costs",
+      "We have a business model that will be financially sustainable (without subsidies)",
+      "Our business model is scalable (revenues increase faster than costs)",
+      "We have sufficient working capital to grow according to our ambition"
+    ],
+    "Product leadership": [
+      "We have a product leadership team that drives a clear vision and prioritization for our product roadmap",
+      "We actively use customer insights and feedback loops to inform product decisions and validate assumptions.",
+      "We run regular growth experiments and iterate quickly based on measurable outcomes",
+      "Our team uses lean startup methods to test and refine our product features before full-scale development",
+      "We have a clear process for identifying and prioritizing the features that deliver the most value to our customers",
+      "We continuously measure and evaluate to determine whether we have real product/market fit"
+    ],
+    "Market leadership": [
+      "Few deliver similar propositions as us",
+      "It is easy for our customers to choose us rather than our competitors",
+      "We are effectively gaining traction in our target market segments",
+      "We have distinct competitive advantages",
+      "It is difficult for others to enter the market (cheap, fast, easy)",
+      "It is difficult for existing competitors to copy our products"
+    ]
+  },
+  "CUSTOMERS, SALES & BRANDING": {
+    "Customer portfolio": [
+      "Our customer portfolio is extensive",
+      "We have several returning (long term) customers",
+      "We are not dependent on one single customer",
+      "We actively refine customer retention strategies to minimize churn"
+    ],
+    "Customer understanding": [
+      "We have a good understanding of the value we create for our customers (pains & gains)",
+      "We have a good understanding of who is the decision-maker at our various customers",
+      "We have a good understanding of main customer decision-making process"
+    ],
+    "Network": [
+      "We have several good ambassadors for our product / service",
+      "We have established well functioning routines to maintain and strengthen our network",
+      "We have well functioning strategies for building our network",
+      "We have mapped out the ecosystem surrounding our customer",
+      "We have entered strategic partnerships with relevant players"
+    ],
+    "Branding": [
+      "We have a compelling and clear brand identity",
+      "Our logo and graphic profile reflects our brand identity",
+      "We are consciously building our brand"
+    ],
+    "Communication and marketing": [
+      "Our communication and marketing strategy is conceptualized/written out",
+      "We have an action plan for communication and marketing",
+      "We have a dynamic communication strategy that adapts to market and audience needs",
+      "We have chosen the most appropriate channels for our marketing efforts",
+      "We can clearly see that marketing efforts trigger sales"
+    ],
+    "Sales": [
+      "We work actively with sales",
+      "We follow up on all leads",
+      "We have dedicated resources working with sales",
+      "We are not dependent on external sales support",
+      "We have a good return on our sales efforts",
+      "We have good systems for sales training"
+    ]
+  },
+  "ADMIN, TECH & FINANCIAL MANAGEMENT": {
+    "Strategy and growth planning": [
+      "We have a short-term plan with concrete actions (<1 year)",
+      "We use OKRs to reach our goals",
+      "We have a long-term strategy that is in line with our impact ambitions",
+      "The strategy is actively used in ongoing priorities and decisions",
+      "The strategy is updated regularly and as needed",
+      "The strategy is well rooted in the entire organization, including our board"
+    ],
+    "Financial management": [
+      "We have a dedicated CFO",
+      "We have sufficient competence for financial management in our team",
+      "We continuously refine our pricing and value propositions to align with market needs",
+      "We have created an appropriate budget",
+      "We prepare forecasts regularly",
+      "We have good liquidity management",
+      "We actively analyze financial data to inform and shape our growth strategy",
+      "Our management uses financial models or calculations as decision making support"
+    ],
+    "Accounting": [
+      "Our company has well-functioning accounting routines and follows good accounting practice",
+      "There is a clear distinction between our private finances and the company's finances",
+      "Our company has good routines for bookkeeping travel expenses and other expenses",
+      "Our company has board certified power of attorney for authorization and routines",
+      "We have clear financial structures and compliance practices that support sustainable growth"
+    ],
+    "Financial results": [
+      "We have a clear understanding of our cash runway and actively monitor it to make strategic decisions",
+      "We have realistic milestones and a plan to achieve financial sustainability within the next three years",
+      "We are actively experimenting to validate and grow predictable revenue sources"
+    ],
+    "Financing": [
+      "The company is well equipped to meet future investment needs as defined in company goals and strategy",
+      "The company does not operate at our creditor's expense (unable to meet current obligations)",
+      "The company is not in any debt negotiations with its creditors"
+    ],
+    "Delivery management": [
+      "Our company has good systems for delivering products / services",
+      "We have a predictable need for resources related to our deliveries",
+      "Our delivery is of high and consistent quality",
+      "We have good agreements with key suppliers for our deliveries"
+    ],
+    "Core Technology": [
+      "We have defined an architectural north star that guides our long-term technical development and scalability",
+      "Our technical team has the necessary expertise and capacity to deliver on our current and future product roadmap",
+      "We have established best practices and development processes to ensure high-quality, maintainable, and scalable code",
+      "We have a good idea of what tech talent we need to attract in the future, and a plan to do so"
+    ]
+  },
+  "ORGANIZATION & LEADERSHIP": {
+    "Legal": [
+      "We have access to legal expertise when needed and use legal assistance when required",
+      "We proactively assess and address potential legal risks to ensure smooth operations",
+      "We have the legal rights to our business concept, product and/or service (freedom to operate)"
+    ],
+    "Ownership structure": [
+      "Our ownership structure is clean and aligns with the long-term vision and goals of the company",
+      "We have an ESOP plan to attract and incentivize key employees, advisors, and early supporters"
+    ],
+    "Employees": [
+      "We have a clear plan to scale our team and competencies as the business grows",
+      "We have mapped out our competence needs",
+      "Existing employees cover the need for competence",
+      "We have mapped future talent and competence needs",
+      "We have an employee brand strategy",
+      "Our employees have clear job descriptions and we are well covered to solve all key activities in the company",
+      "Our employment agreements satisfy the Working Environment Act"
+    ],
+    "Management": [
+      "The company has a clearly defined leader (and a management group)",
+      "Our management has a conscious relationship towards creating and preserving an appropriate culture in the company",
+      "Employee interviews/feedback sessions are conducted regularly",
+      "There is a good vibe among the founders and management team"
+    ],
+    "Board": [
+      "The board members are actively helping secure customers, capital, or talent",
+      "The board is actively used in the company's strategic work",
+      "We have insurance for our board members",
+      "We have a board calendar and an annual schedule for board meetings",
+      "The board consists of also independently elected representatives"
+    ],
+    "Partnerships": [
+      "We are conscious of how partnerships can strengthen our business",
+      "We have entered into important partnerships"
+    ],
+    "Team": [
+      "We have complementary skills within the team",
+      "We evaluate how we work together as a team",
+      "We work well together in solving challenges",
+      "We have personal development goals"
+    ]
+  },
+  "IMPACT": {
+    "Impact awareness": [
+      "We have a clear understanding of what impact we want to have",
+      "We have reliable information/research which documents our problem to be solved"
+    ],
+    "Impact measurement": [
+      "Our company has a theory of change",
+      "We have a clear understanding of what we need to measure to maximize our impact",
+      "Our company has impact metrics",
+      "Our company measures impact results",
+      "We have assessed the risks associated with our impact",
+      "Impact measurements are included in the company's operational routines",
+      "The company regularly reports impact results in board meetings",
+      "We communicate our positive impact actively in our webpage and pitch deck",
+      "We have knowledge about the SFDR regulations and Principal Adverse Impacts"
+    ],
+    "Impact management": [
+      "Our company has an impact management plan",
+      "Management are using impact results as decision support",
+      "We have mapped our impact results and objectives towards the UN's sustainability goals"
+    ],
+    "Impact ambitions": [
+      "The company achieves maximum impact value creation given the company's prerequisites as of today",
+      "The company has clear ambitions for future growth and maximization of impact results"
+    ]
+  },
+  "FUNDRAISING & INVESTOR RELATIONS": {
+    "Preparation & Documentation": [
+      "Our dataroom is well-organized, including essential documents such as the pitch deck, contract, financial model, cap table, team bios, etc.",
+      "We have a clear and compelling pitch deck tailored to investors (value prop, market, growth plan)",
+      "We have a process in place to update our dataroom effectively",
+      "Our cap table is clean and structured, providing clarity on equity distribution and post-round dilution"
+    ],
+    "Strategy & Targeting": [
+      "We have identified and mapped potential investors who align with our stage, industry, and goals",
+      "We have a prioritized list of investors based on strategic fit and the value they can bring to the company",
+      "We have a clear understanding of the terms we are seeking, including valuation, equity offered, and deal structure",
+      "We have defined key milestones this fundraising round will help us achieve, and we can clearly communicate them"
+    ],
+    "Team & Process": [
+      "We have a dedicated team or individual responsible for managing the fundraising process",
+      "Our leadership team is aligned on the fundraising strategy, goals, and use of funds",
+      "We have rehearsed and refined our pitch to address potential investor questions and objections",
+      "We are prepared to handle due diligence requests quickly and professionally",
+      "We have a clear timeline and step-by-step plan for reaching out to investors, following up, and closing the round"
+    ],
+    "Investor Relations": [
+      "We actively nurture relationships with investors, even when not actively fundraising",
+      "We have a post-fundraising communication plan to keep investors informed of progress and milestones",
+      "We clearly understand the exit strategies available and can articulate them to investors",
+      "We seek feedback and mentorship from experienced founders or advisors to strengthen our fundraising approach"
+    ]
+  }
+}
+

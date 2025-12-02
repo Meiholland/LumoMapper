@@ -1,26 +1,41 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #fefbf3;
+  --foreground: #0f172a;
+  --sun-50: #fff8e6;
+  --sun-100: #fee8bb;
+  --sun-200: #fdd38b;
+  --sun-300: #f9bb58;
+  --sun-400: #f6b055;
+  --sun-500: #ec9a2c;
+  --sun-600: #c7791b;
+  --sun-700: #995918;
+  --sun-800: #6b3a16;
+  --sun-900: #3d2211;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-sun-50: var(--sun-50);
+  --color-sun-100: var(--sun-100);
+  --color-sun-200: var(--sun-200);
+  --color-sun-300: var(--sun-300);
+  --color-sun-400: var(--sun-400);
+  --color-sun-500: var(--sun-500);
+  --color-sun-600: var(--sun-600);
+  --color-sun-700: var(--sun-700);
+  --color-sun-800: var(--sun-800);
+  --color-sun-900: var(--sun-900);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
-  background: var(--background);
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font-geist-sans), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: radial-gradient(circle at top, #fff, #ffe8bb 45%, #fef5df 70%) fixed;
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
 }
