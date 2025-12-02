@@ -24,21 +24,29 @@ export default async function Home({
               Portfolio Intelligence
             </div>
             <h1 className="text-4xl font-semibold leading-tight tracking-tight md:text-5xl">
-              Measure portfolio readiness with radar clarity.
+              Discover your growth readiness with radar clarity.
             </h1>
             <p className="text-base text-slate-600">
-              Collect structured answers from every company, auto-score their
-              operating maturity, and highlight where partners can help. Secure
-              Supabase auth, company-specific dashboards, and spider diagrams out
-              of the box.
+              Track your company's progress quarter by quarter. See where you're
+              strong, identify gaps, and get clear insights on what to focus on next.
+              Your growth journey, visualized.
             </p>
-            <ul className="space-y-2 text-sm text-slate-600">
-              <li>• Likert-style assessments grouped by capability</li>
-              <li>• Auto-aggregated radar charts for at-a-glance health</li>
-              <li>• Supabase storage ready for historic XLSX imports</li>
+            <ul className="space-y-2.5 text-sm text-slate-600">
+              <li className="flex items-start gap-2">
+                <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-sun-500" />
+                <span>Quick 5-minute quarterly assessments that reveal your strengths and blind spots</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-sun-500" />
+                <span>Visual radar charts showing your progress across key business areas</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-sun-500" />
+                <span>Compare your current quarter with past performance to track improvement</span>
+              </li>
             </ul>
-            <div className="mt-2 text-xs uppercase tracking-[0.4em] text-slate-500">
-              Start with a pilot account
+            <div className="mt-4 text-xs uppercase tracking-[0.4em] text-slate-500">
+              Get started in seconds
             </div>
             <AuthCard />
           </div>

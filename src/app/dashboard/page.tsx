@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSupabaseServerClient } from "@/lib/supabase/server-client";
+import { getOrCreatePortalUser } from "@/lib/supabase/portal-user";
 import { getLatestAssessments } from "./actions";
 import { DashboardCharts } from "@/components/dashboard-charts";
 
@@ -23,6 +24,20 @@ export default async function DashboardPage() {
     user: { email, user_metadata },
   } = session;
 
+  // Get portal user to fetch company info
+  const portalUser = await getOrCreatePortalUser(supabase, session);
+  
+  // Fetch company name
+  let companyName = null;
+  if (portalUser.company_id) {
+    const { data: company } = await supabase
+      .from("companies")
+      .select("name")
+      .eq("id", portalUser.company_id)
+      .single();
+    companyName = company?.name ?? null;
+  }
+
   const assessmentsResult = await getLatestAssessments(3);
   const assessments = assessmentsResult.data ?? [];
 
@@ -33,7 +48,7 @@ export default async function DashboardPage() {
           Portfolio dashboard
         </p>
         <h1 className="mt-2 text-4xl font-semibold text-slate-900">
-          Welcome back{user_metadata?.full_name ? `, ${user_metadata.full_name}` : ""}.
+          {companyName ? `${companyName} — ` : ""}Welcome back{user_metadata?.full_name ? `, ${user_metadata.full_name}` : ""}.
         </h1>
         <p className="mt-2 text-sm text-slate-500">
           You are logged in as {email}. Review your quarterly progress below.
@@ -43,7 +58,7 @@ export default async function DashboardPage() {
             href="/assessments/new"
             className="inline-flex items-center rounded-full bg-gradient-to-r from-sun-400 to-sun-500 px-5 py-3 text-sm font-semibold text-slate-950 shadow shadow-sun-200/70 transition hover:brightness-110"
           >
-            Start assessment
+            Start new assessment
           </Link>
           <Link
             href="/"

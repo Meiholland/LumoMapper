@@ -15,68 +15,47 @@ const questionBank: Question[] = [
   {
     id: "value-proposition",
     prompt:
-      "We have a clearly defined value proposition grounded in validated customer insight.",
+      "We have a clear and compelling value proposition that addresses our customers' most significant pains and needs",
     category: "Business Concept & Market",
     axis: "Value proposition",
     defaultScore: 3,
   },
   {
+    id: "product-market-fit",
+    prompt:
+      "We continuously measure and evaluate to determine whether we have real product/market fit",
+    category: "Business Concept & Market",
+    axis: "Product leadership",
+    defaultScore: 3,
+  },
+  {
     id: "market-leadership",
     prompt:
-      "We track competitors and understand our path to market leadership.",
+      "We are effectively gaining traction in our target market segments",
     category: "Business Concept & Market",
     axis: "Market leadership",
-    defaultScore: 2,
+    defaultScore: 3,
   },
   {
     id: "customer-portfolio",
-    prompt: "Our customer portfolio is diversified and expanding.",
-    category: "Business Concept & Market",
-    axis: "Customer portfolio",
-    defaultScore: 4,
-  },
-  {
-    id: "sales-motion",
-    prompt: "Our sales process is structured with clear conversion metrics.",
+    prompt: "Our customer portfolio is extensive and we are not dependent on one single customer",
     category: "Customers, Sales & Branding",
-    axis: "Sales",
+    axis: "Customer portfolio",
     defaultScore: 3,
   },
   {
     id: "network",
-    prompt: "We leverage a strong ecosystem/network to drive growth.",
+    prompt: "We have established well functioning routines to maintain and strengthen our network",
     category: "Customers, Sales & Branding",
     axis: "Network",
-    defaultScore: 2,
-  },
-  {
-    id: "financial-management",
-    prompt: "We have a rolling 18-month financial plan and scenario model.",
-    category: "Admin, Tech & Finance",
-    axis: "Financial management",
-    defaultScore: 2,
-  },
-  {
-    id: "core-tech",
-    prompt:
-      "Our core technology roadmap is documented with measurable milestones.",
-    category: "Admin, Tech & Finance",
-    axis: "Core technology",
-    defaultScore: 5,
-  },
-  {
-    id: "team",
-    prompt: "Leadership and team rituals foster high accountability.",
-    category: "Organization & Leadership",
-    axis: "Team",
     defaultScore: 3,
   },
   {
-    id: "legal",
-    prompt: "Company has a clean legal & ownership structure.",
-    category: "Organization & Leadership",
-    axis: "Legal",
-    defaultScore: 4,
+    id: "sales-motion",
+    prompt: "We have a clear sales process with defined conversion metrics and predictable outcomes",
+    category: "Customers, Sales & Branding",
+    axis: "Sales",
+    defaultScore: 3,
   },
 ];
 
@@ -112,13 +91,14 @@ export function AssessmentPreview() {
     <div className="space-y-8 rounded-3xl bg-white/70 p-8 shadow-xl ring-1 ring-slate-100 backdrop-blur">
       <header>
         <p className="text-sm uppercase tracking-[0.3em] text-slate-500">
-          Sample assessment
+          Try it yourself
         </p>
         <h2 className="mt-2 text-2xl font-semibold text-slate-900">
-          Adjust the statements to see the radar update
+          See how your answers shape your growth radar
         </h2>
-        <p className="mt-2 text-sm text-slate-500">
-          This is a live preview of how founders will experience the portal.
+        <p className="mt-2 text-sm text-slate-600">
+          Adjust the sliders below to see how your responses translate into visual insights. 
+          Each statement helps build a complete picture of where your company stands.
         </p>
       </header>
 
@@ -130,53 +110,56 @@ export function AssessmentPreview() {
             return acc;
           }, {}),
         ).map(([category, questions]) => (
-          <div key={category} className="rounded-2xl border border-slate-100 p-4">
-            <div className="flex items-center justify-between">
+          <div key={category} className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50/50 p-6 shadow-sm">
+            <div className="mb-5 flex items-center justify-between border-b border-slate-200 pb-3">
               <h3 className="text-lg font-semibold text-slate-900">
                 {category}
               </h3>
-              <span className="text-xs uppercase tracking-widest text-slate-500">
-                1 (disagree) → 5 (strongly agree)
+              <span className="text-xs font-medium text-slate-500">
+                1 = Disagree • 5 = Strongly Agree
               </span>
             </div>
-            <div className="mt-4 space-y-4">
+            <div className="space-y-4">
               {questions.map((question) => (
-                <label
+                <div
                   key={question.id}
-                  className="flex flex-col gap-3 rounded-xl bg-slate-50/60 p-4 md:flex-row md:items-center md:gap-6"
+                  className="group rounded-xl border border-slate-200 bg-white p-4 transition hover:border-sun-300 hover:shadow-sm"
                 >
-                  <div className="flex-1 text-sm text-slate-700">
-                    {question.prompt}
-                  </div>
-                  <input
-                    type="range"
-                    min={1}
-                    max={5}
-                    step={1}
-                    value={scores[question.id]}
-                    onChange={(event) =>
-                      setScores((prev) => ({
-                        ...prev,
-                        [question.id]: Number(event.target.value),
-                      }))
-                    }
-                    className="w-full accent-sun-500 md:w-48"
-                  />
-                  <span className="w-10 text-right text-lg font-semibold text-slate-900">
-                    {scores[question.id]}
-                  </span>
-                </label>
+                  <label className="flex flex-col gap-4 md:flex-row md:items-center md:gap-6">
+                    <div className="flex-1 text-sm leading-relaxed text-slate-700">
+                      {question.prompt}
+                    </div>
+                    <div className="flex items-center gap-4 md:w-64">
+                      <input
+                        type="range"
+                        min={1}
+                        max={5}
+                        step={1}
+                        value={scores[question.id]}
+                        onChange={(event) =>
+                          setScores((prev) => ({
+                            ...prev,
+                            [question.id]: Number(event.target.value),
+                          }))
+                        }
+                        className="flex-1 accent-sun-500"
+                      />
+                      <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-sun-100 text-base font-bold text-sun-700 shadow-sm">
+                        {scores[question.id]}
+                      </span>
+                    </div>
+                  </label>
+                </div>
               ))}
             </div>
           </div>
         ))}
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2">
+      <section className="grid gap-6 md:grid-cols-2">
         {groupedAverages.map((group) => (
           <RadarCard
             key={group.category}
-            subtitle="Category health"
             title={group.category}
             axes={group.axes}
           />
