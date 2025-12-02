@@ -13,23 +13,18 @@ export async function getSupabaseServerClient() {
     );
   }
 
-  type CookieHandler = NonNullable<
-    Parameters<typeof createServerClient>[2]
-  >["cookies"];
-
-  const cookieHandler: CookieHandler = {
-    async get(name) {
-      const store = await cookies();
-      return store.get(name)?.value;
+  const cookieHandler = {
+    get(name: string) {
+      return cookies().then((store) => store.get(name)?.value);
     },
-    async set(name, value, options) {
+    set(name: string, value: string, options: any) {
       // In Server Actions, cookies can only be read, not written
       // Cookie writes should happen in Route Handlers only
       // This is a no-op to prevent errors, but cookies won't be persisted
       // For session management, use Route Handlers for auth operations
       // Silently ignore cookie writes in Server Actions to prevent errors
     },
-    async remove(name, options) {
+    remove(name: string, options: any) {
       // In Server Actions, cookies can only be read, not written
       // This is a no-op to prevent errors
       // Silently ignore cookie removals in Server Actions to prevent errors

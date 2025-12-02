@@ -71,7 +71,13 @@ export default async function NewAssessmentPage() {
   );
 
   for (const question of questions) {
-    const category = question.categories;
+    // Handle categories as array (Supabase returns it as array for relations)
+    const categoryArray = Array.isArray(question.categories) 
+      ? question.categories 
+      : question.categories 
+        ? [question.categories] 
+        : [];
+    const category = categoryArray[0];
     if (!category || !categoryMap.has(category.id)) continue;
 
     categoryMap.get(category.id)!.questions.push({

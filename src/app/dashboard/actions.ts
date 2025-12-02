@@ -122,7 +122,13 @@ export async function getLatestAssessments(limit = 3) {
       >();
 
       for (const question of questions) {
-        const category = question.categories;
+        // Handle categories as array (Supabase returns it as array for relations)
+        const categoryArray = Array.isArray(question.categories) 
+          ? question.categories 
+          : question.categories 
+            ? [question.categories] 
+            : [];
+        const category = categoryArray[0];
         if (!category) continue;
 
         const response = periodResponses.find(

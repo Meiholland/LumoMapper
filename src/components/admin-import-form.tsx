@@ -9,8 +9,8 @@ import { portfolioCompanies } from "@/data/companies";
 
 const schema = z.object({
   companyName: z.string().min(1, "Select a company"),
-  year: z.coerce.number().min(2015).max(2100),
-  quarter: z.coerce.number().int().min(1).max(4),
+  year: z.number().min(2015).max(2100),
+  quarter: z.number().int().min(1).max(4),
   jsonData: z.string().min(10, "Paste the JSON assessment data"),
 });
 
@@ -88,24 +88,24 @@ export function AdminImportForm() {
           )}
         </label>
 
-        <label className="block text-sm font-medium text-slate-700">
-          Year
-          <input
-            type="number"
-            className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 outline-none transition focus:border-sun-400 focus:ring-2 focus:ring-sun-200"
-            {...register("year")}
-          />
+          <label className="block text-sm font-medium text-slate-700">
+            Year
+            <input
+              type="number"
+              className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 outline-none transition focus:border-sun-400 focus:ring-2 focus:ring-sun-200"
+              {...register("year", { valueAsNumber: true })}
+            />
           {errors.year && (
             <p className="mt-1 text-sm text-rose-500">{errors.year.message}</p>
           )}
         </label>
 
-        <label className="block text-sm font-medium text-slate-700">
-          Quarter
-          <select
-            className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 outline-none transition focus:border-sun-400 focus:ring-2 focus:ring-sun-200"
-            {...register("quarter")}
-          >
+          <label className="block text-sm font-medium text-slate-700">
+            Quarter
+            <select
+              className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 outline-none transition focus:border-sun-400 focus:ring-2 focus:ring-sun-200"
+              {...register("quarter", { valueAsNumber: true })}
+            >
             <option value={1}>Q1</option>
             <option value={2}>Q2</option>
             <option value={3}>Q3</option>

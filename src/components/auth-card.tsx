@@ -18,7 +18,7 @@ const signupSchema = z
     mode: z.literal("signup"),
     fullName: z.string().min(3, "Tell us your name"),
     companyName: z.enum(portfolioCompanies, {
-      errorMap: () => ({ message: "Pick your company" }),
+      message: "Pick your company",
     }),
     ...sharedFields,
   })
@@ -212,7 +212,7 @@ export function AuthCard() {
                 placeholder="E.g. Robin Venture"
                 {...register("fullName")}
               />
-              <FieldError message={errors.fullName?.message} />
+              <FieldError message={(errors as any).fullName?.message} />
             </label>
 
             <label className="block text-sm font-medium text-slate-700">
@@ -227,7 +227,7 @@ export function AuthCard() {
                   </option>
                 ))}
               </select>
-              <FieldError message={errors.companyName?.message} />
+              <FieldError message={(errors as any).companyName?.message} />
             </label>
           </>
         )}

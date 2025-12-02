@@ -8,9 +8,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { submitAssessment } from "@/app/assessments/actions";
 
 const schema = z.object({
-  year: z.coerce.number().min(2015).max(2100),
-  quarter: z.coerce.number().int().min(1).max(4),
-  answers: z.record(z.string(), z.coerce.number().int().min(1).max(5)),
+  year: z.number().min(2015).max(2100),
+  quarter: z.number().int().min(1).max(4),
+  answers: z.record(z.string(), z.number().int().min(1).max(5)),
 });
 
 type FormValues = z.infer<typeof schema>;

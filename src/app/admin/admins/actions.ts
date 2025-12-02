@@ -63,9 +63,17 @@ export async function getAllAdmins() {
         const { data: authUser } = await adminClient.auth.admin.getUserById(
           user.auth_user_id,
         );
+        // Transform companies array to single object or null
+        const company = Array.isArray(user.companies) 
+          ? (user.companies.length > 0 ? user.companies[0] : null)
+          : user.companies;
+        
         return {
-          ...user,
+          id: user.id,
+          full_name: user.full_name,
+          role: user.role,
           email: authUser?.user?.email ?? "Unknown",
+          companies: company,
         };
       }),
     );

@@ -93,7 +93,13 @@ export async function getCompanyAssessment(
     >();
 
     for (const question of questions) {
-      const category = question.categories;
+      // Handle categories as array (Supabase returns it as array for relations)
+      const categoryArray = Array.isArray(question.categories) 
+        ? question.categories 
+        : question.categories 
+          ? [question.categories] 
+          : [];
+      const category = categoryArray[0];
       if (!category) continue;
 
       const response = responses?.find((r) => r.question_id === question.id);
@@ -144,10 +150,18 @@ export async function getCompanyAssessment(
       categories,
     };
 
+    // Handle companies as array (Supabase returns it as array for relations)
+    const companyArray = Array.isArray(period.companies) 
+      ? period.companies 
+      : period.companies 
+        ? [period.companies] 
+        : [];
+    const company = companyArray[0];
+
     return {
       data: {
         assessment,
-        companyName: period.companies?.name ?? "Unknown Company",
+        companyName: company?.name ?? "Unknown Company",
       },
     };
   } catch (error) {
