@@ -1,78 +1,70 @@
 "use client";
 
 import { useState, useTransition, useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
 import Link from "next/link";
-import { grantAdminRole, revokeAdminRole, getAllAdmins } from "./actions";
+import { grantAdminRoleByAuthId, revokeAdminRoleByAuthId, getAllUsers } from "./actions";
 
-const grantSchema = z.object({
-  email: z.string().email("Invalid email address"),
-});
-
-type GrantFormValues = z.infer<typeof grantSchema>;
+type User = {
+  id: string;
+  auth_user_id: string;
+  full_name: string;
+  email: string;
+  role: string;
+  companies: { name: string } | null;
+};
 
 export default function AdminsPage() {
   const [status, setStatus] = useState<{
     type: "idle" | "error" | "success";
     message?: string;
   }>({ type: "idle" });
-  const [admins, setAdmins] = useState<
-    Array<{
-      id: string;
-      full_name: string;
-      email: string;
-      role: string;
-      companies: { name: string } | null;
-    }>
-  >([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<GrantFormValues>({
-    resolver: zodResolver(grantSchema),
-  });
-
-  // Load admins on mount
+  // Load all users on mount
   useEffect(() => {
-    loadAdmins();
+    loadUsers();
   }, []);
 
-  async function loadAdmins() {
+  async function loadUsers() {
     setIsLoading(true);
-    const result = await getAllAdmins();
+    setStatus({ type: "idle" });
+    const result = await getAllUsers();
     if (result.error) {
       setStatus({ type: "error", message: result.error });
     } else {
-      setAdmins(result.data ?? []);
+      setUsers(result.data ?? []);
     }
     setIsLoading(false);
   }
 
-  const onGrantAdmin = handleSubmit((values) => {
+  const onGrantAdmin = (authUserId: string, email: string) => {
+    if (!confirm(`Grant admin access to ${email}?`)) {
+      return;
+    }
     setStatus({ type: "idle" });
     startTransition(async () => {
-      const result = await grantAdminRole(values.email);
+      const result = await grantAdminRoleByAuthId(authUserId);
       if (result.error) {
         setStatus({ type: "error", message: result.error });
         return;
       }
       setStatus({
         type: "success",
-        message: `Admin access granted to ${values.email}`,
+        message: `Admin access granted to ${email}`,
       });
-      reset();
-      loadAdmins();
+      loadUsers();
     });
-  });
+  };
 
-  const onRevokeAdmin = (email: string) => {
+  const onRevokeAdmin = (authUserId: string, email: string) => {
     if (!confirm(`Revoke admin access from ${email}?`)) {
       return;
     }
+    setStatus({ type: "idle" });
     startTransition(async () => {
-      const result = await revokeAdminRole(email);
+      const result = await revokeAdminRoleByAuthId(authUserId);
       if (result.error) {
         setStatus({ type: "error", message: result.error });
         return;
@@ -81,7 +73,7 @@ export default function AdminsPage() {
         type: "success",
         message: `Admin access revoked from ${email}`,
       });
-      loadAdmins();
+      loadUsers();
     });
   };
 
@@ -102,93 +94,75 @@ export default function AdminsPage() {
         </p>
       </header>
 
-      <div className="grid gap-8 lg:grid-cols-2">
-        {/* Grant Admin Section */}
-        <div className="rounded-3xl border border-slate-200 bg-white/80 p-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-semibold text-slate-900">
-            Grant Admin Access
-          </h2>
-          <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            <p className="font-medium">Note:</p>
-            <p className="mt-1">
-              The user must already have signed up and created an account. This will grant admin access to their existing account. No email is sent.
-            </p>
-          </div>
-          <form className="space-y-4" onSubmit={onGrantAdmin}>
-            <label className="block text-sm font-medium text-slate-700">
-              Email Address
-              <input
-                type="email"
-                className="mt-1 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-900 outline-none transition focus:border-sun-400 focus:ring-2 focus:ring-sun-200"
-                placeholder="user@example.com"
-                {...register("email")}
-              />
-              {errors.email && (
-                <p className="mt-1 text-sm text-rose-500">
-                  {errors.email.message}
-                </p>
-              )}
-            </label>
-
-            {status.message && (
-              <div
-                className={`rounded-2xl border px-4 py-3 text-sm ${
-                  status.type === "error"
-                    ? "border-rose-200 bg-rose-50 text-rose-600"
-                    : "border-emerald-200 bg-emerald-50 text-emerald-700"
-                }`}
-              >
-                {status.message}
-              </div>
-            )}
-
-            <button
-              type="submit"
-              className="flex w-full items-center justify-center rounded-3xl bg-gradient-to-r from-sun-400 to-sun-500 px-5 py-3 text-base font-semibold text-slate-950 shadow-lg shadow-sun-200/80 transition hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-sun-500 disabled:opacity-60"
-              disabled={isPending}
-            >
-              {isPending ? "Granting..." : "Grant Admin Access"}
-            </button>
-          </form>
+      {status.message && (
+        <div
+          className={`rounded-2xl border px-4 py-3 text-sm ${
+            status.type === "error"
+              ? "border-rose-200 bg-rose-50 text-rose-600"
+              : "border-emerald-200 bg-emerald-50 text-emerald-700"
+          }`}
+        >
+          {status.message}
         </div>
+      )}
 
-        {/* Current Admins Section */}
-        <div className="rounded-3xl border border-slate-200 bg-white/80 p-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-semibold text-slate-900">
-            Current Admins
-          </h2>
-          {isLoading ? (
-            <p className="text-sm text-slate-500">Loading...</p>
-          ) : admins.length === 0 ? (
-            <p className="text-sm text-slate-500">No admins found.</p>
-          ) : (
-            <div className="space-y-3">
-              {admins.map((admin) => (
-                <div
-                  key={admin.id}
-                  className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3"
-                >
-                  <div>
-                    <div className="font-medium text-slate-900">{admin.full_name}</div>
-                    <div className="text-sm text-slate-500">{admin.email}</div>
-                    {admin.companies && (
-                      <div className="text-xs text-slate-400">
-                        {admin.companies.name}
-                      </div>
+      <div className="rounded-3xl border border-slate-200 bg-white/80 p-6 shadow-sm">
+        <h2 className="mb-4 text-lg font-semibold text-slate-900">
+          All Users
+        </h2>
+        <p className="mb-6 text-sm text-slate-600">
+          Manage admin access for all registered users. Click "Make Admin" or "Revoke" to change their role.
+        </p>
+        {isLoading ? (
+          <p className="text-sm text-slate-500">Loading users...</p>
+        ) : users.length === 0 ? (
+          <p className="text-sm text-slate-500">No users found.</p>
+        ) : (
+          <div className="space-y-3">
+            {users.map((user) => (
+              <div
+                key={user.id}
+                className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 transition hover:bg-slate-100"
+              >
+                <div className="flex-1">
+                  <div className="flex items-center gap-3">
+                    <div className="font-semibold text-slate-900">{user.full_name}</div>
+                    {user.role === "admin" && (
+                      <span className="rounded-full bg-sun-100 px-2 py-0.5 text-xs font-medium text-sun-700">
+                        Admin
+                      </span>
                     )}
                   </div>
-                  <button
-                    onClick={() => onRevokeAdmin(admin.email)}
-                    className="rounded-lg border border-rose-200 bg-white px-3 py-1.5 text-sm font-medium text-rose-600 transition hover:bg-rose-50 disabled:opacity-50"
-                    disabled={isPending}
-                  >
-                    Revoke
-                  </button>
+                  <div className="mt-1 text-sm text-slate-600">{user.email}</div>
+                  {user.companies && (
+                    <div className="mt-1 text-xs text-slate-400">
+                      {user.companies.name}
+                    </div>
+                  )}
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
+                <div className="ml-4">
+                  {user.role === "admin" ? (
+                    <button
+                      onClick={() => onRevokeAdmin(user.auth_user_id, user.email)}
+                      className="rounded-lg border border-rose-200 bg-white px-4 py-2 text-sm font-medium text-rose-600 transition hover:bg-rose-50 disabled:opacity-50"
+                      disabled={isPending}
+                    >
+                      {isPending ? "Revoking..." : "Revoke"}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => onGrantAdmin(user.auth_user_id, user.email)}
+                      className="rounded-lg border border-sun-300 bg-sun-50 px-4 py-2 text-sm font-medium text-sun-700 transition hover:bg-sun-100 disabled:opacity-50"
+                      disabled={isPending}
+                    >
+                      {isPending ? "Granting..." : "Make Admin"}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="mt-8 flex gap-3">
