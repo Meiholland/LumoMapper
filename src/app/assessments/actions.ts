@@ -10,6 +10,91 @@ export type AssessmentPayload = {
   answers: Record<string, number>;
 };
 
+/**
+ * Gets the most recent assessment scores before the specified year/quarter.
+ * Returns a map of question_id -> score, or null if no previous assessment exists.
+ */
+export async function getPreviousAssessmentScores(
+  year: number,
+  quarter: number,
+) {
+  const supabase = await getSupabaseServerClient();
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    return { error: "Not authenticated" };
+  }
+
+  try {
+    // Create a session-like object for getOrCreatePortalUser
+    const session = {
+      user: {
+        id: user.id,
+        user_metadata: user.user_metadata || {},
+        email: user.email,
+      },
+    } as any;
+    
+    const portalUser = await getOrCreatePortalUser(supabase, session);
+    if (!portalUser.company_id) {
+      return { error: "No company assigned" };
+    }
+
+    // Always get the most recent assessment, excluding the current period if it exists
+    const { data: allPeriods, error: allPeriodsError } = await supabase
+      .from("assessment_periods")
+      .select("id, year, quarter")
+      .eq("company_id", portalUser.company_id)
+      .order("year", { ascending: false })
+      .order("quarter", { ascending: false });
+
+    if (allPeriodsError) {
+      return { error: "Failed to load previous assessments" };
+    }
+
+    if (!allPeriods || allPeriods.length === 0) {
+      return { data: null };
+    }
+
+    // Find the most recent period that's NOT the current period
+    const prevPeriod = allPeriods.find(
+      (p) => !(p.year === year && p.quarter === quarter),
+    );
+
+    if (!prevPeriod) {
+      // Only the current period exists (or it's the only one)
+      return { data: null };
+    }
+
+    // Fetch responses for the previous period
+    const { data: responses, error: responsesError } = await supabase
+      .from("assessment_responses")
+      .select("question_id, score")
+      .eq("assessment_period_id", prevPeriod.id);
+
+    if (responsesError) {
+      return { error: "Failed to load previous responses" };
+    }
+
+    // Convert to a map of question_id -> score
+    const scoresMap = Object.fromEntries(
+      (responses || []).map((r) => [r.question_id, r.score]),
+    );
+
+    return { data: scoresMap };
+  } catch (error) {
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "Unexpected error while loading previous assessment.",
+    };
+  }
+}
+
 export async function submitAssessment(payload: AssessmentPayload) {
   const supabase = await getSupabaseServerClient();
   const {

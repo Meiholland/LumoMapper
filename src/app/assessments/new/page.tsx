@@ -112,6 +112,34 @@ export default async function NewAssessmentPage() {
           charts and highlight strengths and gaps across{" "}
           <span className="font-medium">{portalUser.full_name}</span>’s company.
         </p>
+        <div className="mt-4 rounded-2xl border border-sun-200 bg-sun-50/50 p-4">
+          <p className="text-sm text-slate-700">
+            <span className="font-semibold">Previous assessments:</span> Your most recent assessment scores will be pre-loaded. 
+            As you adjust the sliders, you'll see visual indicators showing how your current scores compare:
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-700">
+                +2
+              </span>
+              <span className="text-slate-600">Increase from previous</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-bold text-rose-700">
+                -1
+              </span>
+              <span className="text-slate-600">Decrease from previous</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-16 rounded-full bg-emerald-500"></div>
+              <span className="text-slate-600">Green slider = improvement</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-16 rounded-full bg-rose-500"></div>
+              <span className="text-slate-600">Red slider = decline</span>
+            </div>
+          </div>
+        </div>
       </div>
       <AssessmentForm categories={formatted} />
     </main>

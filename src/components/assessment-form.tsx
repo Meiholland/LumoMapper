@@ -1,11 +1,11 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition, useEffect, memo } from "react";
 import { useRouter } from "next/navigation";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useForm, useWatch } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { submitAssessment } from "@/app/assessments/actions";
+import { submitAssessment, getPreviousAssessmentScores } from "@/app/assessments/actions";
 
 const schema = z.object({
   year: z.number().min(2015).max(2100),
@@ -31,6 +31,75 @@ type Props = {
   categories: Category[];
 };
 
+// Separate component for the slider to ensure re-renders
+const QuestionSlider = memo(function QuestionSlider({
+  questionId,
+  currentValue,
+  previousValue,
+  initialValue,
+  onChange,
+}: {
+  questionId: string;
+  currentValue: number;
+  previousValue: number | undefined;
+  initialValue: number;
+  onChange: (value: number) => void;
+}) {
+  // Use previousValue if available, otherwise use initialValue (default 3)
+  const comparisonValue = previousValue !== undefined && previousValue !== null 
+    ? previousValue 
+    : initialValue;
+  const difference = currentValue - comparisonValue;
+  const isIncrease = difference > 0;
+  const isDecrease = difference < 0;
+  const showIndicator = difference !== 0;
+
+  return (
+    <div className="mt-5 space-y-2">
+      <div className="relative">
+        <input
+          type="range"
+          min={1}
+          max={5}
+          step={1}
+          value={currentValue}
+          onChange={(event) => onChange(Number(event.target.value))}
+          onInput={(event) => onChange(Number((event.target as HTMLInputElement).value))}
+          className="w-full transition-colors"
+          style={{
+            accentColor: isIncrease
+              ? "rgb(16 185 129)" // emerald-500
+              : isDecrease
+                ? "rgb(244 63 94)" // rose-500
+                : "rgb(251 191 36)", // sun-500 (amber-400)
+          }}
+        />
+      </div>
+      <div className="flex items-center justify-between text-xs uppercase tracking-widest text-slate-500">
+        <span>Disagree</span>
+        <div className="flex items-center gap-2">
+          <span className="rounded-full bg-white px-2 py-0.5 text-sm font-semibold text-slate-900">
+            {currentValue}
+          </span>
+          {showIndicator && (
+            <span
+              className={`rounded-full px-2 py-0.5 text-xs font-bold transition-colors ${
+                isIncrease
+                  ? "bg-emerald-100 text-emerald-700"
+                  : "bg-rose-100 text-rose-700"
+              }`}
+            >
+              {difference > 0 ? "+" : ""}
+              {difference}
+            </span>
+          )}
+        </div>
+        <span>Strongly agree</span>
+      </div>
+    </div>
+  );
+});
+
 function getDefaultYear() {
   return new Date().getFullYear();
 }
@@ -45,6 +114,10 @@ export function AssessmentForm({ categories }: Props) {
     type: "idle",
   });
   const [isPending, startTransition] = useTransition();
+  const [previousScores, setPreviousScores] = useState<Record<string, number> | null>(null);
+  const [isLoadingPrevious, setIsLoadingPrevious] = useState(false);
+  // Track initial values for comparison when there's no previous assessment
+  const [initialValues, setInitialValues] = useState<Record<string, number>>({});
 
   const defaultAnswers = useMemo(
     () =>
@@ -56,7 +129,7 @@ export function AssessmentForm({ categories }: Props) {
     [categories],
   );
 
-  const { register, control, handleSubmit } = useForm<FormValues>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       year: getDefaultYear(),
@@ -64,6 +137,67 @@ export function AssessmentForm({ categories }: Props) {
       answers: defaultAnswers,
     },
   });
+
+  const { register, control, handleSubmit, setValue, watch } = form;
+
+  // Watch year and quarter to fetch previous scores when they change
+  const selectedYear = watch("year");
+  const selectedQuarter = watch("quarter");
+
+  // Fetch previous assessment scores when year/quarter changes
+  useEffect(() => {
+    const year = Number(selectedYear) || getDefaultYear();
+    const quarter = Number(selectedQuarter) || getDefaultQuarter();
+    
+    if (!year || !quarter) return;
+
+    setIsLoadingPrevious(true);
+    getPreviousAssessmentScores(year, quarter)
+      .then((result) => {
+        if (result.error) {
+          setPreviousScores(null);
+          setIsLoadingPrevious(false);
+          return;
+        }
+        
+        // Set previous scores state FIRST
+        setPreviousScores(result.data || null);
+        
+        // Update form values with previous scores AFTER setting state
+        if (result.data && Object.keys(result.data).length > 0) {
+          const newInitialValues: Record<string, number> = {};
+          categories.forEach((category) => {
+            category.questions.forEach((question) => {
+              const prevScore = result.data?.[question.id];
+              if (prevScore !== undefined && prevScore !== null) {
+                setValue(`answers.${question.id}`, prevScore);
+                newInitialValues[question.id] = prevScore;
+              } else {
+                // Use default value of 3
+                newInitialValues[question.id] = 3;
+              }
+            });
+          });
+          setInitialValues(newInitialValues);
+        } else {
+          // Set initial values to defaults (3)
+          const defaultInitials: Record<string, number> = {};
+          categories.forEach((category) => {
+            category.questions.forEach((question) => {
+              defaultInitials[question.id] = 3;
+            });
+          });
+          setInitialValues(defaultInitials);
+        }
+      })
+      .catch((error) => {
+        console.error("Error fetching previous scores:", error);
+        setPreviousScores(null);
+      })
+      .finally(() => {
+        setIsLoadingPrevious(false);
+      });
+  }, [selectedYear, selectedQuarter, categories, setValue]);
 
   const onSubmit = handleSubmit((values) => {
     setStatus({ type: "idle" });
@@ -144,40 +278,36 @@ export function AssessmentForm({ categories }: Props) {
               </h2>
             </div>
             <div className="space-y-4">
-              {category.questions.map((question) => (
+              {category.questions.map((question) => {
+                const previousValue = previousScores?.[question.id];
+                // Include previousValue in key to force re-render when it changes
+                return (
                 <div
-                  key={question.id}
+                  key={`${question.id}-prev-${previousValue ?? 'none'}`}
                   className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4"
                 >
                   <p className="text-sm text-slate-700">{question.prompt}</p>
                   <Controller
                     control={control}
                     name={`answers.${question.id}`}
-                    render={({ field }) => (
-                      <div className="mt-5 space-y-2">
-                        <input
-                          type="range"
-                          min={1}
-                          max={5}
-                          step={1}
-                          value={field.value ?? 3}
-                          onChange={(event) =>
-                            field.onChange(Number(event.target.value))
-                          }
-                          className="w-full accent-sun-500"
+                    render={({ field }) => {
+                      const currentValue = field.value ?? 3;
+                      const initialValue = initialValues[question.id] ?? 3;
+                      
+                      return (
+                        <QuestionSlider
+                          key={`slider-${question.id}-${previousValue ?? 'none'}-${initialValue}`}
+                          questionId={question.id}
+                          currentValue={currentValue}
+                          previousValue={previousValue}
+                          initialValue={initialValue}
+                          onChange={(value) => field.onChange(value)}
                         />
-                        <div className="flex items-center justify-between text-xs uppercase tracking-widest text-slate-500">
-                          <span>Disagree</span>
-                          <span className="rounded-full bg-white px-2 py-0.5 text-sm font-semibold text-slate-900">
-                            {field.value ?? 3}
-                          </span>
-                          <span>Strongly agree</span>
-                        </div>
-                      </div>
-                    )}
+                      );
+                    }}
                   />
                 </div>
-              ))}
+              )})}
             </div>
           </section>
         ))}
