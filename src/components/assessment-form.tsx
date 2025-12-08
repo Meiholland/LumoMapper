@@ -118,6 +118,8 @@ export function AssessmentForm({ categories }: Props) {
   const [isLoadingPrevious, setIsLoadingPrevious] = useState(false);
   // Track initial values for comparison when there's no previous assessment
   const [initialValues, setInitialValues] = useState<Record<string, number>>({});
+  const [showDuplicateModal, setShowDuplicateModal] = useState(false);
+  const [duplicatePeriod, setDuplicatePeriod] = useState<{ year: number; quarter: number } | null>(null);
 
   const defaultAnswers = useMemo(
     () =>
@@ -138,21 +140,15 @@ export function AssessmentForm({ categories }: Props) {
     },
   });
 
-  const { register, control, handleSubmit, setValue, watch } = form;
+  const { register, control, handleSubmit, setValue } = form;
 
-  // Watch year and quarter to fetch previous scores when they change
-  const selectedYear = watch("year");
-  const selectedQuarter = watch("quarter");
-
-  // Fetch previous assessment scores when year/quarter changes
+  // Fetch previous assessment scores only on initial mount
   useEffect(() => {
-    const year = Number(selectedYear) || getDefaultYear();
-    const quarter = Number(selectedQuarter) || getDefaultQuarter();
+    const year = getDefaultYear();
+    const quarter = getDefaultQuarter();
     
-    if (!year || !quarter) return;
-
     setIsLoadingPrevious(true);
-    console.log(`[AssessmentForm] Fetching previous scores for Q${quarter} ${year}`);
+    console.log(`[AssessmentForm] Fetching previous scores on mount`);
     getPreviousAssessmentScores(year, quarter)
       .then((result) => {
         if (result.error) {
@@ -200,14 +196,21 @@ export function AssessmentForm({ categories }: Props) {
       .finally(() => {
         setIsLoadingPrevious(false);
       });
-  }, [selectedYear, selectedQuarter, categories, setValue]);
+  }, [categories, setValue]); // Only run on mount
 
   const onSubmit = handleSubmit((values) => {
     setStatus({ type: "idle" });
+    setShowDuplicateModal(false);
     startTransition(async () => {
       const result = await submitAssessment(values);
       if (result.error) {
-        setStatus({ type: "error", message: result.error });
+        // Check if it's a duplicate error
+        if (result.error.includes("already submitted")) {
+          setDuplicatePeriod({ year: values.year, quarter: values.quarter });
+          setShowDuplicateModal(true);
+        } else {
+          setStatus({ type: "error", message: result.error });
+        }
         return;
       }
 
@@ -323,6 +326,46 @@ export function AssessmentForm({ categories }: Props) {
       >
         {isPending ? "Submitting..." : "Submit assessment"}
       </button>
+
+      {/* Duplicate Assessment Modal */}
+      {showDuplicateModal && duplicatePeriod && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="relative w-full max-w-md rounded-3xl bg-white p-8 shadow-2xl">
+            <button
+              type="button"
+              onClick={() => setShowDuplicateModal(false)}
+              className="absolute right-4 top-4 text-slate-400 hover:text-slate-600"
+              aria-label="Close"
+            >
+              <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <div className="mb-4">
+              <div className="mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-rose-100">
+                <svg className="h-6 w-6 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-semibold text-slate-900">
+                Assessment Already Exists
+              </h2>
+            </div>
+            <p className="mb-6 text-slate-600">
+              You've already submitted an assessment for{" "}
+              <span className="font-semibold">Q{duplicatePeriod.quarter} {duplicatePeriod.year}</span>.
+              Please select a different year and quarter, or contact support if you need to update an existing assessment.
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowDuplicateModal(false)}
+              className="w-full rounded-2xl bg-gradient-to-r from-sun-400 to-sun-500 px-4 py-3 text-base font-semibold text-slate-950 transition hover:brightness-110"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
     </form>
   );
 }
