@@ -52,22 +52,35 @@ export async function getPreviousAssessmentScores(
       .order("quarter", { ascending: false });
 
     if (allPeriodsError) {
+      console.error("[getPreviousAssessmentScores] Error loading periods:", allPeriodsError);
       return { error: "Failed to load previous assessments" };
     }
 
     if (!allPeriods || allPeriods.length === 0) {
+      console.log("[getPreviousAssessmentScores] No periods found for company");
       return { data: null };
     }
 
-    // Find the most recent period that's NOT the current period
-    const prevPeriod = allPeriods.find(
-      (p) => !(p.year === year && p.quarter === quarter),
+    console.log(`[getPreviousAssessmentScores] Found ${allPeriods.length} periods. Looking for most recent assessment (current: Q${quarter} ${year})`);
+    console.log(`[getPreviousAssessmentScores] All periods:`, allPeriods.map(p => `Q${p.quarter} ${p.year}`));
+
+    // Check if current period already exists
+    const currentPeriodExists = allPeriods.some(
+      (p) => p.year === year && p.quarter === quarter,
     );
 
+    // If current period exists, use it as the "previous" (for editing)
+    // Otherwise, use the most recent period
+    const prevPeriod = currentPeriodExists
+      ? allPeriods.find((p) => p.year === year && p.quarter === quarter)
+      : allPeriods[0]; // Most recent period
+
     if (!prevPeriod) {
-      // Only the current period exists (or it's the only one)
+      console.log(`[getPreviousAssessmentScores] No periods found`);
       return { data: null };
     }
+
+    console.log(`[getPreviousAssessmentScores] Using period: Q${prevPeriod.quarter} ${prevPeriod.year}${currentPeriodExists ? ' (current period, editing mode)' : ' (previous period)'}`);
 
     // Fetch responses for the previous period
     const { data: responses, error: responsesError } = await supabase
@@ -76,14 +89,18 @@ export async function getPreviousAssessmentScores(
       .eq("assessment_period_id", prevPeriod.id);
 
     if (responsesError) {
+      console.error("[getPreviousAssessmentScores] Error loading responses:", responsesError);
       return { error: "Failed to load previous responses" };
     }
+
+    console.log(`[getPreviousAssessmentScores] Found ${responses?.length || 0} responses for period ${prevPeriod.id}`);
 
     // Convert to a map of question_id -> score
     const scoresMap = Object.fromEntries(
       (responses || []).map((r) => [r.question_id, r.score]),
     );
 
+    console.log(`[getPreviousAssessmentScores] Returning ${Object.keys(scoresMap).length} scores`);
     return { data: scoresMap };
   } catch (error) {
     return {

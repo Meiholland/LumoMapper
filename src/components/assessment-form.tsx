@@ -152,14 +152,17 @@ export function AssessmentForm({ categories }: Props) {
     if (!year || !quarter) return;
 
     setIsLoadingPrevious(true);
+    console.log(`[AssessmentForm] Fetching previous scores for Q${quarter} ${year}`);
     getPreviousAssessmentScores(year, quarter)
       .then((result) => {
         if (result.error) {
+          console.error(`[AssessmentForm] Error loading previous scores:`, result.error);
           setPreviousScores(null);
           setIsLoadingPrevious(false);
           return;
         }
         
+        console.log(`[AssessmentForm] Previous scores result:`, result.data ? `${Object.keys(result.data).length} scores` : 'null');
         // Set previous scores state FIRST
         setPreviousScores(result.data || null);
         
