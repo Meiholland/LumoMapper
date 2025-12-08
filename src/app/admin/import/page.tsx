@@ -4,6 +4,8 @@ import { getSupabaseServerClient } from "@/lib/supabase/server-client";
 import { isAdmin } from "@/lib/supabase/admin";
 import { AdminImportForm } from "@/components/admin-import-form";
 
+export const dynamic = 'force-dynamic';
+
 export default async function ImportPage() {
   const supabase = await getSupabaseServerClient();
   const {

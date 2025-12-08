@@ -3,6 +3,8 @@ import Link from "next/link";
 import { getSupabaseServerClient } from "@/lib/supabase/server-client";
 import { isAdmin } from "@/lib/supabase/admin";
 
+export const dynamic = 'force-dynamic';
+
 export default async function AdminPage() {
   const supabase = await getSupabaseServerClient();
   const {

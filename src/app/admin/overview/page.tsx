@@ -5,6 +5,8 @@ import { isAdmin } from "@/lib/supabase/admin";
 import { getCompanyOverview } from "./actions";
 import { AdminAssessmentCard } from "@/components/admin-assessment-card";
 
+export const dynamic = 'force-dynamic';
+
 export default async function OverviewPage() {
   const supabase = await getSupabaseServerClient();
   const {

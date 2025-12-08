@@ -5,6 +5,8 @@ import { isAdmin } from "@/lib/supabase/admin";
 import { getCompanyAssessment } from "./actions";
 import { DashboardCharts } from "@/components/dashboard-charts";
 
+export const dynamic = 'force-dynamic';
+
 export default async function CompanyAssessmentPage({
   params,
 }: {

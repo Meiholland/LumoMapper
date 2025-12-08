@@ -5,6 +5,8 @@ import { getOrCreatePortalUser } from "@/lib/supabase/portal-user";
 import { getLatestAssessments } from "./actions";
 import { DashboardCharts } from "@/components/dashboard-charts";
 
+export const dynamic = 'force-dynamic';
+
 export default async function DashboardPage() {
   const supabase = await getSupabaseServerClient();
   const {

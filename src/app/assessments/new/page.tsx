@@ -3,6 +3,8 @@ import { getSupabaseServerClient } from "@/lib/supabase/server-client";
 import { getOrCreatePortalUser } from "@/lib/supabase/portal-user";
 import { AssessmentForm } from "@/components/assessment-form";
 
+export const dynamic = 'force-dynamic';
+
 export default async function NewAssessmentPage() {
   const supabase = await getSupabaseServerClient();
   const {
