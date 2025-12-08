@@ -43,11 +43,13 @@ export async function getPreviousAssessmentScores(
       return { error: "No company assigned" };
     }
 
-    // Always get the most recent assessment, excluding the current period if it exists
+    // Always get the most recent assessment by submitted_at (most accurate)
+    // Fallback to year/quarter ordering if submitted_at is not available
     const { data: allPeriods, error: allPeriodsError } = await supabase
       .from("assessment_periods")
-      .select("id, year, quarter")
+      .select("id, year, quarter, submitted_at")
       .eq("company_id", portalUser.company_id)
+      .order("submitted_at", { ascending: false })
       .order("year", { ascending: false })
       .order("quarter", { ascending: false });
 
@@ -61,26 +63,20 @@ export async function getPreviousAssessmentScores(
       return { data: null };
     }
 
-    console.log(`[getPreviousAssessmentScores] Found ${allPeriods.length} periods. Looking for most recent assessment (current: Q${quarter} ${year})`);
+    console.log(`[getPreviousAssessmentScores] Found ${allPeriods.length} periods. Getting most recent assessment (ignoring current: Q${quarter} ${year})`);
     console.log(`[getPreviousAssessmentScores] All periods:`, allPeriods.map(p => `Q${p.quarter} ${p.year}`));
 
-    // Check if current period already exists
-    const currentPeriodExists = allPeriods.some(
-      (p) => p.year === year && p.quarter === quarter,
-    );
-
-    // If current period exists, use it as the "previous" (for editing)
-    // Otherwise, use the most recent period
-    const prevPeriod = currentPeriodExists
-      ? allPeriods.find((p) => p.year === year && p.quarter === quarter)
-      : allPeriods[0]; // Most recent period
+    // Always get the most recent assessment, regardless of what year/quarter is selected
+    // Order by submitted_at if available, otherwise by year/quarter
+    // For now, just use the first one (most recent by year/quarter)
+    const prevPeriod = allPeriods[0]; // Most recent period
 
     if (!prevPeriod) {
       console.log(`[getPreviousAssessmentScores] No periods found`);
       return { data: null };
     }
 
-    console.log(`[getPreviousAssessmentScores] Using period: Q${prevPeriod.quarter} ${prevPeriod.year}${currentPeriodExists ? ' (current period, editing mode)' : ' (previous period)'}`);
+    console.log(`[getPreviousAssessmentScores] Using most recent period: Q${prevPeriod.quarter} ${prevPeriod.year}`);
 
     // Fetch responses for the previous period
     const { data: responses, error: responsesError } = await supabase
