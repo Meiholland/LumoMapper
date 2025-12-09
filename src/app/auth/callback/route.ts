@@ -99,18 +99,33 @@ export async function GET(request: NextRequest) {
   // Always check, even if nextParam is set, to ensure Lumo Labs users go to /admin
   let finalRedirectPath = redirectPath;
   if (sessionData?.session) {
+    console.log("[AuthCallback] Session found:", {
+      userId: sessionData.session.user.id,
+      email: sessionData.session.user.email,
+      metadataCompany: sessionData.session.user.user_metadata?.company_name,
+      nextParam,
+      initialRedirectPath: redirectPath,
+    });
+
     try {
       // First check user metadata (fastest, works for new signups)
       const metadataCompanyName = sessionData.session.user.user_metadata?.company_name;
       if (metadataCompanyName?.toLowerCase() === "lumo labs") {
+        console.log("[AuthCallback] Lumo Labs detected from metadata, redirecting to /admin");
         finalRedirectPath = "/admin";
       } else {
         // Check if user is from Lumo Labs via portal user
-        const { data: portalUser } = await supabase
+        const { data: portalUser, error: portalError } = await supabase
           .from("users")
           .select("company_id, companies(name)")
           .eq("auth_user_id", sessionData.session.user.id)
           .maybeSingle();
+
+        console.log("[AuthCallback] Portal user lookup:", {
+          found: !!portalUser,
+          companyId: portalUser?.company_id,
+          error: portalError?.message,
+        });
 
         let companyName: string | null = null;
         if (portalUser?.companies) {
@@ -123,32 +138,47 @@ export async function GET(request: NextRequest) {
 
         // Fallback: fetch company separately if relation didn't work
         if (!companyName && portalUser?.company_id) {
-          const { data: companyData } = await supabase
+          const { data: companyData, error: companyError } = await supabase
             .from("companies")
             .select("name")
             .eq("id", portalUser.company_id)
             .single();
+          
+          console.log("[AuthCallback] Company lookup:", {
+            companyId: portalUser.company_id,
+            companyName: companyData?.name,
+            error: companyError?.message,
+          });
+          
           companyName = companyData?.name ?? null;
         }
 
         // Lumo Labs users always go to admin page (case-insensitive check)
         if (companyName?.toLowerCase() === "lumo labs") {
+          console.log("[AuthCallback] Lumo Labs detected from portal user, redirecting to /admin");
           finalRedirectPath = "/admin";
         } else if (!nextParam) {
           // Only check admin status if nextParam wasn't set (to avoid overriding explicit redirects)
           const userIsAdmin = await isAdmin(supabase, sessionData.session);
+          console.log("[AuthCallback] Admin check:", { userIsAdmin });
           if (userIsAdmin) {
             finalRedirectPath = "/admin";
           }
         }
       }
     } catch (err) {
+      console.error("[AuthCallback] Error checking user:", err);
       // If check fails, check user metadata as fallback
       const metadataCompanyName = sessionData.session.user.user_metadata?.company_name;
       if (metadataCompanyName?.toLowerCase() === "lumo labs") {
+        console.log("[AuthCallback] Lumo Labs detected from metadata fallback, redirecting to /admin");
         finalRedirectPath = "/admin";
       }
     }
+
+    console.log("[AuthCallback] Final redirect path:", finalRedirectPath);
+  } else {
+    console.warn("[AuthCallback] No session found after exchange");
   }
 
   // Ensure final redirect path is also validated

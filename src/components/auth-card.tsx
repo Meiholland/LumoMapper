@@ -143,9 +143,19 @@ export function AuthCard() {
         let redirectPath = "/dashboard";
         if (companyName === "Lumo Labs") {
           redirectPath = "/admin";
+          console.log("[AuthCard] Lumo Labs user detected, redirecting to /admin");
         } else if (userData?.role === "admin") {
           redirectPath = "/admin";
+          console.log("[AuthCard] Admin user detected, redirecting to /admin");
+        } else {
+          console.log("[AuthCard] Regular user, redirecting to /dashboard");
         }
+        
+        console.log("[AuthCard] Login redirect:", {
+          companyName,
+          role: userData?.role,
+          redirectPath,
+        });
         
         // Show success message with company name
         if (companyName) {

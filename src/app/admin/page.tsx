@@ -11,9 +11,20 @@ export default async function AdminPage() {
   const supabase = await getSupabaseServerClient();
   const {
     data: { session },
+    error: sessionError,
   } = await supabase.auth.getSession();
 
+  // Debug logging
+  console.log("[AdminPage] Session check:", {
+    hasSession: !!session,
+    sessionError: sessionError?.message,
+    userId: session?.user?.id,
+    email: session?.user?.email,
+    metadataCompany: session?.user?.user_metadata?.company_name,
+  });
+
   if (!session) {
+    console.error("[AdminPage] No session found - redirecting to login");
     redirect("/?message=Please%20log%20in%20to%20access%20the%20admin%20panel.");
   }
 
@@ -22,17 +33,30 @@ export default async function AdminPage() {
   
   try {
     portalUser = await getOrCreatePortalUser(supabase, session);
+    console.log("[AdminPage] Portal user:", {
+      userId: portalUser.id,
+      companyId: portalUser.company_id,
+      fullName: portalUser.full_name,
+    });
     
     // Fetch company name
     if (portalUser.company_id) {
-      const { data: company } = await supabase
+      const { data: company, error: companyError } = await supabase
         .from("companies")
         .select("name")
         .eq("id", portalUser.company_id)
         .single();
+      
+      console.log("[AdminPage] Company lookup:", {
+        companyId: portalUser.company_id,
+        companyName: company?.name,
+        error: companyError?.message,
+      });
+      
       companyName = company?.name ?? null;
     }
   } catch (error) {
+    console.error("[AdminPage] Error getting portal user:", error);
     // If portal user creation fails, check if user metadata has company name
     // This can happen if the user just signed up but hasn't been created in the portal yet
     const metadataCompanyName = session.user.user_metadata?.company_name;
@@ -46,6 +70,7 @@ export default async function AdminPage() {
       
       if (companies && companies.length > 0) {
         companyName = companies[0].name;
+        console.log("[AdminPage] Found company from metadata:", companyName);
       }
     }
   }
@@ -53,6 +78,7 @@ export default async function AdminPage() {
   // Fallback: also check metadata if we still don't have company name
   if (!companyName) {
     const metadataCompanyName = session.user.user_metadata?.company_name;
+    console.log("[AdminPage] Fallback metadata check:", metadataCompanyName);
     if (metadataCompanyName) {
       const { data: companies } = await supabase
         .from("companies")
@@ -62,6 +88,7 @@ export default async function AdminPage() {
       
       if (companies && companies.length > 0) {
         companyName = companies[0].name;
+        console.log("[AdminPage] Found company from fallback metadata:", companyName);
       }
     }
   }
@@ -71,6 +98,13 @@ export default async function AdminPage() {
   const isLumoLabs = 
     companyName?.toLowerCase() === "lumo labs" ||
     session.user.user_metadata?.company_name?.toLowerCase() === "lumo labs";
+
+  console.log("[AdminPage] Final checks:", {
+    companyName,
+    metadataCompany: session.user.user_metadata?.company_name,
+    isLumoLabs,
+    userIsAdmin,
+  });
 
   // If user is from Lumo Labs but not an admin, show request access page
   if (isLumoLabs && !userIsAdmin) {
