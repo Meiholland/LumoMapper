@@ -123,6 +123,16 @@ export function AuthCard() {
           }
         }
 
+        // Fallback: fetch company separately if relation didn't work
+        if (!companyName && userData?.company_id) {
+          const { data: companyData } = await supabase
+            .from("companies")
+            .select("name")
+            .eq("id", userData.company_id)
+            .single();
+          companyName = companyData?.name ?? null;
+        }
+
         const redirectPath = userData?.role === "admin" ? "/admin" : "/dashboard";
         
         // Show success message with company name
