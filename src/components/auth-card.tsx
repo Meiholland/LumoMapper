@@ -167,8 +167,13 @@ export function AuthCard() {
         // Small delay to show the message
         await new Promise(resolve => setTimeout(resolve, 500));
         
-        await router.push(redirectPath);
+        // Refresh to ensure cookies are synced before navigation
         router.refresh();
+        
+        // Small delay to allow refresh to complete
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        await router.push(redirectPath);
       } catch (loginError) {
         // console.error("[AuthCard] Unexpected login exception", loginError);
         setServerMessage("Something went wrong. Check the console for details.");

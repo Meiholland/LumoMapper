@@ -14,13 +14,17 @@ export default async function AdminPage() {
     error: sessionError,
   } = await supabase.auth.getSession();
 
-  // Debug logging
+  // Debug logging - also log available cookies for debugging
+  const cookieStore = await import("next/headers").then(m => m.cookies());
+  const allCookies = cookieStore.getAll();
   console.log("[AdminPage] Session check:", {
     hasSession: !!session,
     sessionError: sessionError?.message,
     userId: session?.user?.id,
     email: session?.user?.email,
     metadataCompany: session?.user?.user_metadata?.company_name,
+    cookieCount: allCookies.length,
+    cookieNames: allCookies.map(c => c.name),
   });
 
   if (!session) {
