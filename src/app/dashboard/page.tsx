@@ -43,16 +43,6 @@ export default async function DashboardPage() {
   const assessmentsResult = await getLatestAssessments(3);
   const assessments = assessmentsResult.data ?? [];
 
-  // Debug logging (will show in server logs)
-  if (assessmentsResult.error) {
-    console.error("[Dashboard Page] Error loading assessments:", assessmentsResult.error);
-  }
-  console.log("[Dashboard Page] Assessments loaded:", {
-    count: assessments.length,
-    hasError: !!assessmentsResult.error,
-    assessmentIds: assessments.map(a => a.assessment.id),
-  });
-
   return (
     <div className="mx-auto flex min-h-screen max-w-6xl flex-col gap-8 px-4 py-16">
       <header>

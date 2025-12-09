@@ -45,24 +45,14 @@ export async function getPreviousAssessmentScores(
 
     // Explicitly verify company_id matches user's record for data isolation
     // Use maybeSingle() instead of single() to handle cases where record might not exist yet
-    const { data: userRecord, error: userRecordError } = await supabase
+    const { data: userRecord } = await supabase
       .from("users")
       .select("company_id")
       .eq("auth_user_id", user.id)
       .maybeSingle();
 
-    // If query failed or no record found, that's fine - portalUser was just created
-    if (userRecordError) {
-      console.warn("[Assessments] User record query error (non-fatal):", userRecordError);
-    }
-
     // Only verify if we got a record back
     if (userRecord && userRecord.company_id !== portalUser.company_id) {
-      console.error("[Assessments] Company mismatch:", {
-        portalUserCompanyId: portalUser.company_id,
-        userRecordCompanyId: userRecord.company_id,
-        authUserId: user.id,
-      });
       return { error: "Company access verification failed" };
     }
 
@@ -77,29 +67,19 @@ export async function getPreviousAssessmentScores(
       .order("quarter", { ascending: false });
 
     if (allPeriodsError) {
-      console.error("[getPreviousAssessmentScores] Error loading periods:", allPeriodsError);
       return { error: "Failed to load previous assessments" };
     }
 
     if (!allPeriods || allPeriods.length === 0) {
-      console.log("[getPreviousAssessmentScores] No periods found for company");
       return { data: null };
     }
 
-    console.log(`[getPreviousAssessmentScores] Found ${allPeriods.length} periods. Getting most recent assessment (ignoring current: Q${quarter} ${year})`);
-    console.log(`[getPreviousAssessmentScores] All periods:`, allPeriods.map(p => `Q${p.quarter} ${p.year}`));
-
     // Always get the most recent assessment, regardless of what year/quarter is selected
-    // Order by submitted_at if available, otherwise by year/quarter
-    // For now, just use the first one (most recent by year/quarter)
     const prevPeriod = allPeriods[0]; // Most recent period
 
     if (!prevPeriod) {
-      console.log(`[getPreviousAssessmentScores] No periods found`);
       return { data: null };
     }
-
-    console.log(`[getPreviousAssessmentScores] Using most recent period: Q${prevPeriod.quarter} ${prevPeriod.year}`);
 
     // Fetch responses for the previous period
     const { data: responses, error: responsesError } = await supabase
@@ -108,18 +88,14 @@ export async function getPreviousAssessmentScores(
       .eq("assessment_period_id", prevPeriod.id);
 
     if (responsesError) {
-      console.error("[getPreviousAssessmentScores] Error loading responses:", responsesError);
       return { error: "Failed to load previous responses" };
     }
-
-    console.log(`[getPreviousAssessmentScores] Found ${responses?.length || 0} responses for period ${prevPeriod.id}`);
 
     // Convert to a map of question_id -> score
     const scoresMap = Object.fromEntries(
       (responses || []).map((r) => [r.question_id, r.score]),
     );
 
-    console.log(`[getPreviousAssessmentScores] Returning ${Object.keys(scoresMap).length} scores`);
     return { data: scoresMap };
   } catch (error) {
     return {
@@ -132,12 +108,6 @@ export async function getPreviousAssessmentScores(
 }
 
 export async function submitAssessment(payload: AssessmentPayload) {
-  console.log("[submitAssessment] Called with payload:", {
-    year: payload.year,
-    quarter: payload.quarter,
-    answerCount: Object.keys(payload.answers).length,
-  });
-
   const supabase = await getSupabaseServerClient();
   const {
     data: { session },
@@ -145,11 +115,8 @@ export async function submitAssessment(payload: AssessmentPayload) {
   } = await supabase.auth.getSession();
 
   if (sessionError || !session) {
-    console.error("[submitAssessment] Session error:", sessionError);
     return { error: "Please sign in again to submit an assessment." };
   }
-
-  console.log("[submitAssessment] Session valid, user:", session.user.email);
 
   if (!payload.year || !payload.quarter) {
     return { error: "Select a year and quarter before submitting." };

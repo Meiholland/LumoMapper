@@ -8,19 +8,7 @@ type Props = {
 };
 
 export function DashboardCharts({ assessments }: Props) {
-  // Client-side debug logging (visible in browser console)
-  console.log("[DashboardCharts] Received assessments:", {
-    count: assessments.length,
-    assessments: assessments.map(a => ({
-      id: a.assessment.id,
-      year: a.assessment.year,
-      quarter: a.assessment.quarter,
-      categoryCount: a.categories.length,
-    })),
-  });
-
   if (assessments.length === 0) {
-    console.warn("[DashboardCharts] No assessments - showing empty state");
     return (
       <section className="rounded-3xl border border-slate-100 bg-white/80 p-6 shadow-lg shadow-sun-100/40">
         <p className="text-sm text-slate-600">

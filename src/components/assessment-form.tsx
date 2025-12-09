@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition, useEffect, memo } from "react";
 import { useRouter } from "next/navigation";
-import { Controller, useForm, useWatch } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { submitAssessment, getPreviousAssessmentScores } from "@/app/assessments/actions";
@@ -10,7 +10,7 @@ import { submitAssessment, getPreviousAssessmentScores } from "@/app/assessments
 const schema = z.object({
   year: z.number().min(2015).max(2100),
   quarter: z.number().int().min(1).max(4),
-  answers: z.record(z.string(), z.number().int().min(1).max(5)),
+  answers: z.record(z.string(), z.number().int().min(0).max(5)),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -59,12 +59,18 @@ const QuestionSlider = memo(function QuestionSlider({
       <div className="relative">
         <input
           type="range"
-          min={1}
+          min={0}
           max={5}
           step={1}
-          value={currentValue}
-          onChange={(event) => onChange(Number(event.target.value))}
-          onInput={(event) => onChange(Number((event.target as HTMLInputElement).value))}
+          value={Math.max(0, Math.min(5, currentValue))} // Clamp value to 0-5
+          onChange={(event) => {
+            const val = Number(event.target.value);
+            onChange(Math.max(0, Math.min(5, val))); // Ensure value is always 0-5
+          }}
+          onInput={(event) => {
+            const val = Number((event.target as HTMLInputElement).value);
+            onChange(Math.max(0, Math.min(5, val))); // Ensure value is always 0-5
+          }}
           className="w-full transition-colors"
           style={{
             accentColor: isIncrease
@@ -138,6 +144,8 @@ export function AssessmentForm({ categories }: Props) {
       quarter: getDefaultQuarter(),
       answers: defaultAnswers,
     },
+    mode: 'onSubmit', // Only validate on submit
+    shouldUseNativeValidation: false,
   });
 
   const { register, control, handleSubmit, setValue } = form;
@@ -148,17 +156,14 @@ export function AssessmentForm({ categories }: Props) {
     const quarter = getDefaultQuarter();
     
     setIsLoadingPrevious(true);
-    console.log(`[AssessmentForm] Fetching previous scores on mount`);
     getPreviousAssessmentScores(year, quarter)
       .then((result) => {
         if (result.error) {
-          console.error(`[AssessmentForm] Error loading previous scores:`, result.error);
           setPreviousScores(null);
           setIsLoadingPrevious(false);
           return;
         }
         
-        console.log(`[AssessmentForm] Previous scores result:`, result.data ? `${Object.keys(result.data).length} scores` : 'null');
         // Set previous scores state FIRST
         setPreviousScores(result.data || null);
         
@@ -169,10 +174,17 @@ export function AssessmentForm({ categories }: Props) {
             category.questions.forEach((question) => {
               const prevScore = result.data?.[question.id];
               if (prevScore !== undefined && prevScore !== null) {
-                setValue(`answers.${question.id}`, prevScore);
-                newInitialValues[question.id] = prevScore;
+                const numScore = Number(prevScore);
+                if (!isNaN(numScore)) {
+                  setValue(`answers.${question.id}`, numScore, { shouldValidate: false });
+                  newInitialValues[question.id] = numScore;
+                } else {
+                  setValue(`answers.${question.id}`, 3, { shouldValidate: false });
+                  newInitialValues[question.id] = 3;
+                }
               } else {
                 // Use default value of 3
+                setValue(`answers.${question.id}`, 3, { shouldValidate: false });
                 newInitialValues[question.id] = 3;
               }
             });
@@ -183,6 +195,7 @@ export function AssessmentForm({ categories }: Props) {
           const defaultInitials: Record<string, number> = {};
           categories.forEach((category) => {
             category.questions.forEach((question) => {
+              setValue(`answers.${question.id}`, 3, { shouldValidate: false });
               defaultInitials[question.id] = 3;
             });
           });
@@ -190,7 +203,6 @@ export function AssessmentForm({ categories }: Props) {
         }
       })
       .catch((error) => {
-        console.error("Error fetching previous scores:", error);
         setPreviousScores(null);
       })
       .finally(() => {
@@ -200,23 +212,53 @@ export function AssessmentForm({ categories }: Props) {
 
   const onSubmit = handleSubmit(
     (values) => {
-      console.log("[AssessmentForm] Form submitted with values:", {
-        year: values.year,
-        quarter: values.quarter,
-        answerCount: Object.keys(values.answers).length,
-        sampleAnswers: Object.entries(values.answers).slice(0, 3),
-      });
+      // Validate that we have answers
+      if (!values.answers || Object.keys(values.answers).length === 0) {
+        setStatus({
+          type: "error",
+          message: "No answers found. Please ensure all questions have been answered.",
+        });
+        return;
+      }
+
+      // Ensure all answers are numbers between 0-5 (not objects)
+      const cleanedAnswers: Record<string, number> = {};
+      for (const [questionId, answer] of Object.entries(values.answers)) {
+        let numValue: number;
+        
+        if (typeof answer === 'number') {
+          numValue = answer;
+        } else if (typeof answer === 'object' && answer !== null && 'value' in answer) {
+          numValue = Number((answer as { value: unknown }).value);
+        } else {
+          numValue = Number(answer);
+        }
+        
+        // Clamp to valid range (0-5)
+        if (isNaN(numValue)) {
+          numValue = 3;
+        } else if (numValue < 0) {
+          numValue = 0;
+        } else if (numValue > 5) {
+          numValue = 5;
+        }
+        
+        cleanedAnswers[questionId] = numValue;
+      }
+
+      // Use cleaned answers
+      const cleanedValues = {
+        ...values,
+        answers: cleanedAnswers,
+      };
       
       setStatus({ type: "idle" });
       setShowDuplicateModal(false);
       startTransition(async () => {
         try {
-          console.log("[AssessmentForm] Calling submitAssessment...");
-          const result = await submitAssessment(values);
-          console.log("[AssessmentForm] Submit result:", result);
+          const result = await submitAssessment(cleanedValues);
           
           if (result.error) {
-            console.error("[AssessmentForm] Submission error:", result.error);
             // Check if it's a duplicate error
             if (result.error.includes("already submitted")) {
               setDuplicatePeriod({ year: values.year, quarter: values.quarter });
@@ -227,14 +269,12 @@ export function AssessmentForm({ categories }: Props) {
             return;
           }
 
-          console.log("[AssessmentForm] Submission successful, redirecting...");
           setStatus({
             type: "success",
             message: "Assessment submitted! Redirecting to dashboard...",
           });
           setTimeout(() => router.push("/dashboard"), 1200);
         } catch (error) {
-          console.error("[AssessmentForm] Unexpected error during submission:", error);
           setStatus({
             type: "error",
             message: error instanceof Error ? error.message : "An unexpected error occurred",
@@ -244,7 +284,6 @@ export function AssessmentForm({ categories }: Props) {
     },
     (errors) => {
       // Form validation errors
-      console.error("[AssessmentForm] Form validation errors:", errors);
       const firstError = Object.values(errors)[0];
       const errorMessage = firstError?.message 
         ? (typeof firstError.message === 'string' ? firstError.message : String(firstError.message))
@@ -331,7 +370,29 @@ export function AssessmentForm({ categories }: Props) {
                     control={control}
                     name={`answers.${question.id}`}
                     render={({ field }) => {
-                      const currentValue = field.value ?? 3;
+                      // Ensure value is always a number between 0-5, not an object
+                      let currentValue = field.value ?? 3;
+                      if (typeof currentValue !== 'number' || currentValue < 0 || currentValue > 5) {
+                        if (typeof currentValue !== 'number') {
+                          // Try to extract number from object if it's wrapped
+                          if (typeof currentValue === 'object' && currentValue !== null) {
+                            const objValue = currentValue as Record<string, unknown>;
+                            if ('value' in objValue && typeof objValue.value === 'number') {
+                              currentValue = Math.max(0, Math.min(5, objValue.value));
+                            } else {
+                              currentValue = 3;
+                            }
+                          } else {
+                            currentValue = Math.max(0, Math.min(5, Number(currentValue) || 3));
+                          }
+                          // Fix the value immediately
+                          field.onChange(currentValue);
+                        } else {
+                          // Value is out of range
+                          currentValue = Math.max(0, Math.min(5, currentValue));
+                          field.onChange(currentValue);
+                        }
+                      }
                       const initialValue = initialValues[question.id] ?? 3;
                       
                       return (
@@ -341,7 +402,14 @@ export function AssessmentForm({ categories }: Props) {
                           currentValue={currentValue}
                           previousValue={previousValue}
                           initialValue={initialValue}
-                          onChange={(value) => field.onChange(value)}
+                          onChange={(value) => {
+                            // Ensure we always pass a number between 0-5
+                            const numValue = Number(value);
+                            if (!isNaN(numValue)) {
+                              const clampedValue = Math.max(0, Math.min(5, numValue));
+                              field.onChange(clampedValue);
+                            }
+                          }}
                         />
                       );
                     }}
@@ -355,10 +423,6 @@ export function AssessmentForm({ categories }: Props) {
 
       <button
         type="submit"
-        onClick={(e) => {
-          console.log("[AssessmentForm] Submit button clicked");
-          // Don't prevent default - let form handle it
-        }}
         className="flex w-full items-center justify-center rounded-3xl bg-gradient-to-r from-sun-400 to-sun-500 px-5 py-4 text-lg font-semibold text-slate-950 shadow-lg shadow-sun-200/80 transition hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-sun-500 disabled:opacity-60"
         disabled={isPending}
       >

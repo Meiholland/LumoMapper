@@ -49,16 +49,6 @@ export async function getOrCreatePortalUser(
     .select("id, name")
     .ilike("name", escapeLikePattern(companyName))
     .limit(2);
-  
-  // Log for debugging company matching issues
-  if (companies && companies.length > 0) {
-    console.log("[PortalUser] Company matched:", {
-      requested: companyName,
-      matched: companies.map(c => ({ id: c.id, name: c.name })),
-    });
-  } else {
-    console.warn("[PortalUser] No company found for:", companyName);
-  }
 
   if (companyError) {
     throw new Error(
