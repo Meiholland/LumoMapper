@@ -198,29 +198,63 @@ export function AssessmentForm({ categories }: Props) {
       });
   }, [categories, setValue]); // Only run on mount
 
-  const onSubmit = handleSubmit((values) => {
-    setStatus({ type: "idle" });
-    setShowDuplicateModal(false);
-    startTransition(async () => {
-      const result = await submitAssessment(values);
-      if (result.error) {
-        // Check if it's a duplicate error
-        if (result.error.includes("already submitted")) {
-          setDuplicatePeriod({ year: values.year, quarter: values.quarter });
-          setShowDuplicateModal(true);
-        } else {
-          setStatus({ type: "error", message: result.error });
-        }
-        return;
-      }
-
-      setStatus({
-        type: "success",
-        message: "Assessment submitted! Redirecting to dashboard...",
+  const onSubmit = handleSubmit(
+    (values) => {
+      console.log("[AssessmentForm] Form submitted with values:", {
+        year: values.year,
+        quarter: values.quarter,
+        answerCount: Object.keys(values.answers).length,
+        sampleAnswers: Object.entries(values.answers).slice(0, 3),
       });
-      setTimeout(() => router.push("/dashboard"), 1200);
-    });
-  });
+      
+      setStatus({ type: "idle" });
+      setShowDuplicateModal(false);
+      startTransition(async () => {
+        try {
+          console.log("[AssessmentForm] Calling submitAssessment...");
+          const result = await submitAssessment(values);
+          console.log("[AssessmentForm] Submit result:", result);
+          
+          if (result.error) {
+            console.error("[AssessmentForm] Submission error:", result.error);
+            // Check if it's a duplicate error
+            if (result.error.includes("already submitted")) {
+              setDuplicatePeriod({ year: values.year, quarter: values.quarter });
+              setShowDuplicateModal(true);
+            } else {
+              setStatus({ type: "error", message: result.error });
+            }
+            return;
+          }
+
+          console.log("[AssessmentForm] Submission successful, redirecting...");
+          setStatus({
+            type: "success",
+            message: "Assessment submitted! Redirecting to dashboard...",
+          });
+          setTimeout(() => router.push("/dashboard"), 1200);
+        } catch (error) {
+          console.error("[AssessmentForm] Unexpected error during submission:", error);
+          setStatus({
+            type: "error",
+            message: error instanceof Error ? error.message : "An unexpected error occurred",
+          });
+        }
+      });
+    },
+    (errors) => {
+      // Form validation errors
+      console.error("[AssessmentForm] Form validation errors:", errors);
+      const firstError = Object.values(errors)[0];
+      const errorMessage = firstError?.message 
+        ? (typeof firstError.message === 'string' ? firstError.message : String(firstError.message))
+        : "Please check your form and try again.";
+      setStatus({
+        type: "error",
+        message: errorMessage,
+      });
+    }
+  );
 
   return (
     <form onSubmit={onSubmit} className="space-y-8">
@@ -321,6 +355,10 @@ export function AssessmentForm({ categories }: Props) {
 
       <button
         type="submit"
+        onClick={(e) => {
+          console.log("[AssessmentForm] Submit button clicked");
+          // Don't prevent default - let form handle it
+        }}
         className="flex w-full items-center justify-center rounded-3xl bg-gradient-to-r from-sun-400 to-sun-500 px-5 py-4 text-lg font-semibold text-slate-950 shadow-lg shadow-sun-200/80 transition hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-sun-500 disabled:opacity-60"
         disabled={isPending}
       >

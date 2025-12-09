@@ -132,6 +132,12 @@ export async function getPreviousAssessmentScores(
 }
 
 export async function submitAssessment(payload: AssessmentPayload) {
+  console.log("[submitAssessment] Called with payload:", {
+    year: payload.year,
+    quarter: payload.quarter,
+    answerCount: Object.keys(payload.answers).length,
+  });
+
   const supabase = await getSupabaseServerClient();
   const {
     data: { session },
@@ -139,8 +145,11 @@ export async function submitAssessment(payload: AssessmentPayload) {
   } = await supabase.auth.getSession();
 
   if (sessionError || !session) {
+    console.error("[submitAssessment] Session error:", sessionError);
     return { error: "Please sign in again to submit an assessment." };
   }
+
+  console.log("[submitAssessment] Session valid, user:", session.user.email);
 
   if (!payload.year || !payload.quarter) {
     return { error: "Select a year and quarter before submitting." };

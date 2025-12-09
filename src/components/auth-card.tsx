@@ -331,6 +331,8 @@ export function AuthCard() {
               height: '100vh',
               margin: 0,
               padding: '1rem',
+              zIndex: 9999,
+              overflow: 'auto',
             }}
             onClick={(e) => {
               // Close modal when clicking backdrop
