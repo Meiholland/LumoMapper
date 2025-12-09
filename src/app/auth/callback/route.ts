@@ -96,60 +96,50 @@ export async function GET(request: NextRequest) {
   }
 
   // Check if user is admin or from Lumo Labs and redirect accordingly
+  // Always check, even if nextParam is set, to ensure Lumo Labs users go to /admin
   let finalRedirectPath = redirectPath;
-  if (!nextParam && sessionData?.session) {
+  if (sessionData?.session) {
     try {
-      // Check if user is from Lumo Labs
-      const { data: portalUser } = await supabase
-        .from("users")
-        .select("company_id, companies(name)")
-        .eq("auth_user_id", sessionData.session.user.id)
-        .maybeSingle();
-
-      let companyName: string | null = null;
-      if (portalUser?.companies) {
-        if (Array.isArray(portalUser.companies) && portalUser.companies.length > 0) {
-          companyName = portalUser.companies[0]?.name ?? null;
-        } else if (typeof portalUser.companies === 'object' && 'name' in portalUser.companies) {
-          companyName = (portalUser.companies as { name: string }).name;
-        }
-      }
-
-      // Fallback: fetch company separately if relation didn't work
-      if (!companyName && portalUser?.company_id) {
-        const { data: companyData } = await supabase
-          .from("companies")
-          .select("name")
-          .eq("id", portalUser.company_id)
-          .single();
-        companyName = companyData?.name ?? null;
-      }
-
-      // Fallback: check user metadata if portal user doesn't exist yet (new signup)
-      if (!companyName) {
-        const metadataCompanyName = sessionData.session.user.user_metadata?.company_name;
-        if (metadataCompanyName) {
-          // Try to match case-insensitively
-          const { data: companies } = await supabase
-            .from("companies")
-            .select("name")
-            .ilike("name", metadataCompanyName.replace(/[%_]/g, '\\$&'))
-            .limit(1);
-          
-          if (companies && companies.length > 0) {
-            companyName = companies[0].name;
-          }
-        }
-      }
-
-      // Lumo Labs users always go to admin page (case-insensitive check)
-      if (companyName?.toLowerCase() === "lumo labs") {
+      // First check user metadata (fastest, works for new signups)
+      const metadataCompanyName = sessionData.session.user.user_metadata?.company_name;
+      if (metadataCompanyName?.toLowerCase() === "lumo labs") {
         finalRedirectPath = "/admin";
       } else {
-        // Check if user is admin
-        const userIsAdmin = await isAdmin(supabase, sessionData.session);
-        if (userIsAdmin) {
+        // Check if user is from Lumo Labs via portal user
+        const { data: portalUser } = await supabase
+          .from("users")
+          .select("company_id, companies(name)")
+          .eq("auth_user_id", sessionData.session.user.id)
+          .maybeSingle();
+
+        let companyName: string | null = null;
+        if (portalUser?.companies) {
+          if (Array.isArray(portalUser.companies) && portalUser.companies.length > 0) {
+            companyName = portalUser.companies[0]?.name ?? null;
+          } else if (typeof portalUser.companies === 'object' && 'name' in portalUser.companies) {
+            companyName = (portalUser.companies as { name: string }).name;
+          }
+        }
+
+        // Fallback: fetch company separately if relation didn't work
+        if (!companyName && portalUser?.company_id) {
+          const { data: companyData } = await supabase
+            .from("companies")
+            .select("name")
+            .eq("id", portalUser.company_id)
+            .single();
+          companyName = companyData?.name ?? null;
+        }
+
+        // Lumo Labs users always go to admin page (case-insensitive check)
+        if (companyName?.toLowerCase() === "lumo labs") {
           finalRedirectPath = "/admin";
+        } else if (!nextParam) {
+          // Only check admin status if nextParam wasn't set (to avoid overriding explicit redirects)
+          const userIsAdmin = await isAdmin(supabase, sessionData.session);
+          if (userIsAdmin) {
+            finalRedirectPath = "/admin";
+          }
         }
       }
     } catch (err) {
