@@ -39,9 +39,15 @@ type FormValues = z.infer<typeof schema>;
 export function AuthCard() {
   const [serverMessage, setServerMessage] = useState<string | null>(null);
   const [showSignupSuccessModal, setShowSignupSuccessModal] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const [currentMode, setCurrentMode] =
     useState<FormValues["mode"]>("signup");
   const router = useRouter();
+
+  // Ensure component is mounted before rendering portal (prevents hydration issues)
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const {
     register,
     handleSubmit,
@@ -312,10 +318,27 @@ export function AuthCard() {
       </form>
 
       {/* Signup Success Modal - Rendered via portal to cover entire page */}
-      {showSignupSuccessModal &&
-        typeof window !== "undefined" &&
-        createPortal(
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4">
+      {mounted && showSignupSuccessModal && createPortal(
+          <div 
+            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4"
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              width: '100vw',
+              height: '100vh',
+              margin: 0,
+              padding: '1rem',
+            }}
+            onClick={(e) => {
+              // Close modal when clicking backdrop
+              if (e.target === e.currentTarget) {
+                setShowSignupSuccessModal(false);
+              }
+            }}
+          >
             <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
               <div className="flex items-start gap-4">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100">
