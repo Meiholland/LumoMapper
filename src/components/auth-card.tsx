@@ -143,19 +143,9 @@ export function AuthCard() {
         let redirectPath = "/dashboard";
         if (companyName === "Lumo Labs") {
           redirectPath = "/admin";
-          console.log("[AuthCard] Lumo Labs user detected, redirecting to /admin");
         } else if (userData?.role === "admin") {
           redirectPath = "/admin";
-          console.log("[AuthCard] Admin user detected, redirecting to /admin");
-        } else {
-          console.log("[AuthCard] Regular user, redirecting to /dashboard");
         }
-        
-        console.log("[AuthCard] Login redirect:", {
-          companyName,
-          role: userData?.role,
-          redirectPath,
-        });
         
         // Show success message with company name
         if (companyName) {
@@ -167,13 +157,9 @@ export function AuthCard() {
         // Small delay to show the message
         await new Promise(resolve => setTimeout(resolve, 500));
         
-        // Refresh to ensure cookies are synced before navigation
-        router.refresh();
-        
-        // Small delay to allow refresh to complete
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        await router.push(redirectPath);
+        // Use window.location for hard navigation to ensure cookies are synced
+        // This forces a full page reload which ensures server-side cookies are read correctly
+        window.location.href = redirectPath;
       } catch (loginError) {
         // console.error("[AuthCard] Unexpected login exception", loginError);
         setServerMessage("Something went wrong. Check the console for details.");

@@ -21,9 +21,7 @@ export default async function AdminPage() {
     error: userError,
   } = await supabase.auth.getUser();
 
-  // Debug logging - also log available cookies for debugging
-  const cookieStore = await import("next/headers").then(m => m.cookies());
-  const allCookies = cookieStore.getAll();
+  // Debug logging
   console.log("[AdminPage] Session check:", {
     hasSession: !!sessionData,
     sessionError: sessionError?.message,
@@ -32,8 +30,6 @@ export default async function AdminPage() {
     userId: sessionData?.user?.id || user?.id,
     email: sessionData?.user?.email || user?.email,
     metadataCompany: sessionData?.user?.user_metadata?.company_name || user?.user_metadata?.company_name,
-    cookieCount: allCookies.length,
-    cookieNames: allCookies.map(c => c.name),
   });
 
   // If we have a user but no session, we can still proceed
@@ -71,31 +67,18 @@ export default async function AdminPage() {
     }
     
     if (portalUser) {
-      console.log("[AdminPage] Portal user:", {
-        userId: portalUser.id,
-        companyId: portalUser.company_id,
-        fullName: portalUser.full_name,
-      });
-      
       // Fetch company name
       if (portalUser.company_id) {
-        const { data: company, error: companyError } = await supabase
+        const { data: company } = await supabase
           .from("companies")
           .select("name")
           .eq("id", portalUser.company_id)
           .single();
         
-        console.log("[AdminPage] Company lookup:", {
-          companyId: portalUser.company_id,
-          companyName: company?.name,
-          error: companyError?.message,
-        });
-        
         companyName = company?.name ?? null;
       }
     }
   } catch (error) {
-    console.error("[AdminPage] Error getting portal user:", error);
     // If portal user creation fails, check if user metadata has company name
     // This can happen if the user just signed up but hasn't been created in the portal yet
     const metadataCompanyName = sessionData?.user?.user_metadata?.company_name || user?.user_metadata?.company_name;
@@ -109,7 +92,6 @@ export default async function AdminPage() {
       
       if (companies && companies.length > 0) {
         companyName = companies[0].name;
-        console.log("[AdminPage] Found company from metadata:", companyName);
       }
     }
   }
@@ -117,7 +99,6 @@ export default async function AdminPage() {
   // Fallback: also check metadata if we still don't have company name
   if (!companyName) {
     const metadataCompanyName = sessionData?.user?.user_metadata?.company_name || user?.user_metadata?.company_name;
-    console.log("[AdminPage] Fallback metadata check:", metadataCompanyName);
     if (metadataCompanyName) {
       const { data: companies } = await supabase
         .from("companies")
@@ -127,7 +108,6 @@ export default async function AdminPage() {
       
       if (companies && companies.length > 0) {
         companyName = companies[0].name;
-        console.log("[AdminPage] Found company from fallback metadata:", companyName);
       }
     }
   }
@@ -141,12 +121,6 @@ export default async function AdminPage() {
     companyName?.toLowerCase() === "lumo labs" ||
     metadataCompany?.toLowerCase() === "lumo labs";
 
-  console.log("[AdminPage] Final checks:", {
-    companyName,
-    metadataCompany: sessionData?.user?.user_metadata?.company_name || user?.user_metadata?.company_name,
-    isLumoLabs,
-    userIsAdmin,
-  });
 
   // If user is from Lumo Labs but not an admin, show request access page
   if (isLumoLabs && !userIsAdmin) {
