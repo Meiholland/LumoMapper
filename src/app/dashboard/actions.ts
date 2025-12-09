@@ -41,6 +41,17 @@ export async function getLatestAssessments(limit = 3) {
       return { error: "No company assigned" };
     }
 
+    // Explicitly verify company_id matches user's record for data isolation
+    const { data: userRecord } = await supabase
+      .from("users")
+      .select("company_id")
+      .eq("auth_user_id", session.user.id)
+      .single();
+
+    if (userRecord?.company_id !== portalUser.company_id) {
+      return { error: "Company access verification failed" };
+    }
+
     // Fetch latest assessments
     const { data: periods, error: periodsError } = await supabase
       .from("assessment_periods")

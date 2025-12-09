@@ -2,6 +2,17 @@ import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
 import { isAdmin } from "@/lib/supabase/admin";
 
+function isValidRedirect(path: string | null): boolean {
+  if (!path) return true;
+  // Only allow relative paths starting with /
+  if (!path.startsWith('/')) return false;
+  // Reject any path with protocol or external domain
+  if (path.includes('://') || path.includes('//')) return false;
+  // Allowlist of valid paths
+  const allowedPaths = ['/dashboard', '/admin', '/assessments/new', '/'];
+  return allowedPaths.some(allowed => path === allowed || path.startsWith(allowed + '/'));
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
@@ -35,8 +46,11 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  // Validate redirect path to prevent open redirect attacks
+  const redirectPath = isValidRedirect(nextParam) ? (nextParam ?? "/dashboard") : "/dashboard";
+  
   // Create response early so we can set cookies
-  const response = NextResponse.redirect(new URL(nextParam ?? "/dashboard", origin));
+  const response = NextResponse.redirect(new URL(redirectPath, origin));
 
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
@@ -82,12 +96,12 @@ export async function GET(request: NextRequest) {
   }
 
   // Check if user is admin and redirect accordingly
-  let redirectPath = nextParam ?? "/dashboard";
+  let finalRedirectPath = redirectPath;
   if (!nextParam && sessionData?.session) {
     try {
       const userIsAdmin = await isAdmin(supabase, sessionData.session);
       if (userIsAdmin) {
-        redirectPath = "/admin";
+        finalRedirectPath = "/admin";
       }
     } catch (err) {
       // If admin check fails (e.g., user doesn't exist yet), default to dashboard
@@ -95,6 +109,8 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  response.headers.set("Location", new URL(redirectPath, origin).toString());
+  // Ensure final redirect path is also validated
+  const safeRedirectPath = isValidRedirect(finalRedirectPath) ? finalRedirectPath : "/dashboard";
+  response.headers.set("Location", new URL(safeRedirectPath, origin).toString());
   return response;
 }

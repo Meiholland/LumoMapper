@@ -2,6 +2,7 @@
 
 import { getSupabaseServerClient } from "@/lib/supabase/server-client";
 import { isAdmin } from "@/lib/supabase/admin";
+import { validateUUID } from "@/lib/validation";
 
 export type CompanyOverview = {
   id: string;
@@ -101,6 +102,12 @@ export async function getCompanyOverview() {
  * Delete an assessment period (cascades to responses)
  */
 export async function deleteAssessment(assessmentId: string) {
+  // Validate UUID
+  const assessmentIdValidation = validateUUID(assessmentId, "assessment ID");
+  if (assessmentIdValidation.error) {
+    return { error: assessmentIdValidation.error };
+  }
+
   const supabase = await getSupabaseServerClient();
   const {
     data: { session },

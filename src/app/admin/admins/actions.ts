@@ -2,6 +2,7 @@
 
 import { getSupabaseServerClient } from "@/lib/supabase/server-client";
 import { isAdmin } from "@/lib/supabase/admin";
+import { validateEmail } from "@/lib/validation";
 import { createClient } from "@supabase/supabase-js";
 
 /**
@@ -251,6 +252,12 @@ export async function revokeAdminRoleByAuthId(authUserId: string) {
  * Grant admin role to a user by email
  */
 export async function grantAdminRole(email: string) {
+  // Validate email format
+  const emailValidation = validateEmail(email);
+  if (emailValidation.error) {
+    return { error: emailValidation.error };
+  }
+
   const supabase = await getSupabaseServerClient();
   const {
     data: { session },
@@ -290,7 +297,7 @@ export async function grantAdminRole(email: string) {
     const authUser = usersData?.users?.find((u) => u.email?.toLowerCase() === email.toLowerCase());
 
     if (!authUser) {
-      return { error: "User not found. They must sign up first." };
+      return { error: "User not found or access denied." };
     }
 
     // Update all user records with this auth_user_id (in case of duplicates)
@@ -316,6 +323,12 @@ export async function grantAdminRole(email: string) {
  * Revoke admin role from a user by email
  */
 export async function revokeAdminRole(email: string) {
+  // Validate email format
+  const emailValidation = validateEmail(email);
+  if (emailValidation.error) {
+    return { error: emailValidation.error };
+  }
+
   const supabase = await getSupabaseServerClient();
   const {
     data: { session },
@@ -355,7 +368,7 @@ export async function revokeAdminRole(email: string) {
     const authUser = usersData?.users?.find((u) => u.email?.toLowerCase() === email.toLowerCase());
 
     if (!authUser) {
-      return { error: "User not found" };
+      return { error: "User not found or access denied." };
     }
 
     // Update all user records with this auth_user_id (in case of duplicates)

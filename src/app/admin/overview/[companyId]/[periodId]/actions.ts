@@ -2,12 +2,24 @@
 
 import { getSupabaseServerClient } from "@/lib/supabase/server-client";
 import { isAdmin } from "@/lib/supabase/admin";
+import { validateUUID } from "@/lib/validation";
 import type { AssessmentWithScores, CategoryAxisData } from "@/app/dashboard/actions";
 
 export async function getCompanyAssessment(
   companyId: string,
   periodId: string,
 ) {
+  // Validate UUIDs
+  const companyIdValidation = validateUUID(companyId, "company ID");
+  if (companyIdValidation.error) {
+    return { error: companyIdValidation.error };
+  }
+
+  const periodIdValidation = validateUUID(periodId, "period ID");
+  if (periodIdValidation.error) {
+    return { error: periodIdValidation.error };
+  }
+
   const supabase = await getSupabaseServerClient();
   const {
     data: { session },

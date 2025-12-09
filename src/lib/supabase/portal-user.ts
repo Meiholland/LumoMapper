@@ -37,10 +37,15 @@ export async function getOrCreatePortalUser(
     );
   }
 
+  // Escape special characters in company name to prevent pattern injection
+  function escapeLikePattern(input: string): string {
+    return input.replace(/[%_]/g, '\\$&');
+  }
+
   const { data: companies, error: companyError } = await supabase
     .from("companies")
     .select("id")
-    .ilike("name", companyName)
+    .ilike("name", escapeLikePattern(companyName))
     .limit(2);
 
   if (companyError) {

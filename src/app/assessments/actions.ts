@@ -43,6 +43,17 @@ export async function getPreviousAssessmentScores(
       return { error: "No company assigned" };
     }
 
+    // Explicitly verify company_id matches user's record for data isolation
+    const { data: userRecord } = await supabase
+      .from("users")
+      .select("company_id")
+      .eq("auth_user_id", user.id)
+      .single();
+
+    if (userRecord?.company_id !== portalUser.company_id) {
+      return { error: "Company access verification failed" };
+    }
+
     // Always get the most recent assessment by submitted_at (most accurate)
     // Fallback to year/quarter ordering if submitted_at is not available
     const { data: allPeriods, error: allPeriodsError } = await supabase
@@ -124,8 +135,13 @@ export async function submitAssessment(payload: AssessmentPayload) {
   }
 
   const quarter = Number(payload.quarter);
-  if (Number.isNaN(quarter) || quarter < 1 || quarter > 4) {
+  if (!Number.isInteger(quarter) || quarter < 1 || quarter > 4) {
     return { error: "Quarter must be between Q1 and Q4." };
+  }
+
+  const year = Number(payload.year);
+  if (!Number.isInteger(year) || year < 2000 || year > 2100) {
+    return { error: "Year must be between 2000 and 2100." };
   }
 
   try {
@@ -157,13 +173,23 @@ export async function submitAssessment(payload: AssessmentPayload) {
       throw new Error(periodError?.message ?? "Failed to create assessment.");
     }
 
-    const responses = Object.entries(payload.answers).map(
-      ([questionId, score]) => ({
-        assessment_period_id: period.id,
-        question_id: questionId,
-        score,
-      }),
-    );
+    // Validate and sanitize scores server-side
+    const responses = Object.entries(payload.answers)
+      .map(([questionId, score]) => {
+        // Validate score is a number and within valid range
+        const numericScore = Number(score);
+        if (isNaN(numericScore)) {
+          throw new Error(`Invalid score for question ${questionId}`);
+        }
+        // Clamp score to valid range (0-5) and round to integer
+        const validatedScore = Math.max(0, Math.min(5, Math.round(numericScore)));
+        return {
+          assessment_period_id: period.id,
+          question_id: questionId,
+          score: validatedScore,
+        };
+      })
+      .filter(r => r.score >= 0 && r.score <= 5);
 
     const { error: responsesError } = await supabase
       .from("assessment_responses")

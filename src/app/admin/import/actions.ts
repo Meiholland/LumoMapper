@@ -35,26 +35,42 @@ export async function importAssessmentFromJson(payload: ImportPayload) {
   }
 
   try {
+    // Escape special characters in company name to prevent pattern injection
+    function escapeLikePattern(input: string): string {
+      return input.replace(/[%_]/g, '\\$&');
+    }
+
     const { data: companies } = await supabase
       .from("companies")
       .select("id, name")
-      .ilike("name", payload.companyName);
+      .ilike("name", escapeLikePattern(payload.companyName));
 
     if (!companies || companies.length === 0) {
-      return { error: `Company "${payload.companyName}" not found.` };
+      return { error: "Company not found or access denied." };
     }
 
     if (companies.length > 1) {
       return {
-        error: `Multiple companies match "${payload.companyName}". Please be more specific.`,
+        error: "Multiple companies match. Please be more specific.",
       };
     }
 
     const companyId = companies[0].id;
     const quarter = Number(payload.quarter);
 
-    if (Number.isNaN(quarter) || quarter < 1 || quarter > 4) {
+    if (!Number.isInteger(quarter) || quarter < 1 || quarter > 4) {
       return { error: "Quarter must be between 1 and 4." };
+    }
+
+    const year = Number(payload.year);
+    if (!Number.isInteger(year) || year < 2000 || year > 2100) {
+      return { error: "Year must be between 2000 and 2100." };
+    }
+
+    // Validate JSON size to prevent DoS attacks
+    const MAX_JSON_SIZE = 10 * 1024 * 1024; // 10MB
+    if (payload.jsonData.length > MAX_JSON_SIZE) {
+      return { error: "JSON payload exceeds maximum size limit (10MB). Please reduce the size and try again." };
     }
 
     let parsedData: ImportData;

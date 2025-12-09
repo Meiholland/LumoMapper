@@ -16,18 +16,33 @@ export async function POST(request: NextRequest) {
   const cookieStore = await cookies();
   const response = NextResponse.redirect(new URL("/", request.url));
 
+  const origin = new URL(request.url).origin;
+  const isProduction = process.env.NODE_ENV === 'production';
+
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
       get(name: string) {
         return cookieStore.get(name)?.value;
       },
       set(name: string, value: string, options: any) {
-        cookieStore.set({ name, value, ...options });
-        response.cookies.set({ name, value, ...options });
+        const secureOptions = {
+          ...options,
+          httpOnly: true,
+          secure: isProduction || origin.startsWith('https://'),
+          sameSite: 'lax' as const,
+        };
+        cookieStore.set({ name, value, ...secureOptions });
+        response.cookies.set({ name, value, ...secureOptions });
       },
       remove(name: string, options: any) {
-        cookieStore.set({ name, value: "", ...options });
-        response.cookies.set({ name, value: "", ...options });
+        const secureOptions = {
+          ...options,
+          httpOnly: true,
+          secure: isProduction || origin.startsWith('https://'),
+          sameSite: 'lax' as const,
+        };
+        cookieStore.set({ name, value: "", ...secureOptions });
+        response.cookies.set({ name, value: "", ...secureOptions });
       },
     },
   });
