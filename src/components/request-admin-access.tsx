@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
+import { requestAdminAccess } from "@/app/admin/admins/actions";
 
 export function RequestAdminAccess() {
   const [status, setStatus] = useState<{ type: "idle" | "error" | "success"; message?: string }>({
@@ -11,12 +12,19 @@ export function RequestAdminAccess() {
 
   const handleRequestAccess = () => {
     setStatus({ type: "idle" });
-    startTransition(() => {
-      // For now, just show a message. In the future, this could send an email/notification
-      setStatus({
-        type: "success",
-        message: "Admin access request submitted. You will be notified once access is granted.",
-      });
+    startTransition(async () => {
+      const result = await requestAdminAccess();
+      if (result.error) {
+        setStatus({
+          type: "error",
+          message: result.error,
+        });
+      } else {
+        setStatus({
+          type: "success",
+          message: "Admin access request submitted. You will be notified once access is granted.",
+        });
+      }
     });
   };
 

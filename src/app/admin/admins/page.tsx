@@ -11,6 +11,7 @@ type User = {
   email: string;
   role: string;
   companies: { name: string } | null;
+  admin_requested_at: string | null;
 };
 
 export default function AdminsPage() {
@@ -132,11 +133,21 @@ export default function AdminsPage() {
                         Admin
                       </span>
                     )}
+                    {user.admin_requested_at && user.role !== "admin" && (
+                      <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+                        Requested
+                      </span>
+                    )}
                   </div>
                   <div className="mt-1 text-sm text-slate-600">{user.email}</div>
                   {user.companies && (
                     <div className="mt-1 text-xs text-slate-400">
                       {user.companies.name}
+                    </div>
+                  )}
+                  {user.admin_requested_at && user.role !== "admin" && (
+                    <div className="mt-1 text-xs text-blue-600">
+                      Requested {new Date(user.admin_requested_at).toLocaleDateString()}
                     </div>
                   )}
                 </div>

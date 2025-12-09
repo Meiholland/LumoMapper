@@ -27,7 +27,8 @@ export async function getAllUsers() {
     // Get all users from public.users
     const { data: users, error } = await supabase
       .from("users")
-      .select("id, full_name, role, auth_user_id, companies(name)")
+      .select("id, full_name, role, auth_user_id, admin_requested_at, companies(name)")
+      .order("admin_requested_at", { ascending: false, nullsFirst: false })
       .order("full_name");
 
     if (error) {
@@ -76,6 +77,7 @@ export async function getAllUsers() {
           role: user.role,
           email: authUser?.user?.email ?? "Unknown",
           companies: company,
+          admin_requested_at: user.admin_requested_at,
         };
       }),
     );
@@ -192,9 +194,10 @@ export async function grantAdminRoleByAuthId(authUserId: string) {
 
   try {
     // Update all user records with this auth_user_id (in case of duplicates)
+    // Also clear admin_requested_at since request is being granted
     const { error: updateError } = await supabase
       .from("users")
-      .update({ role: "admin" })
+      .update({ role: "admin", admin_requested_at: null })
       .eq("auth_user_id", authUserId);
 
     if (updateError) {
@@ -244,6 +247,39 @@ export async function revokeAdminRoleByAuthId(authUserId: string) {
     // console.error("Failed to revoke admin role:", error);
     return {
       error: error instanceof Error ? error.message : "Failed to revoke admin access",
+    };
+  }
+}
+
+/**
+ * Request admin access (for Lumo Labs users)
+ */
+export async function requestAdminAccess() {
+  const supabase = await getSupabaseServerClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session) {
+    return { error: "Not authenticated" };
+  }
+
+  try {
+    // Update all user records with this auth_user_id to set admin_requested_at
+    const { error: updateError } = await supabase
+      .from("users")
+      .update({ admin_requested_at: new Date().toISOString() })
+      .eq("auth_user_id", session.user.id)
+      .is("admin_requested_at", null); // Only update if no existing request
+
+    if (updateError) {
+      return { error: updateError.message };
+    }
+
+    return { success: true };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Failed to submit admin request",
     };
   }
 }
