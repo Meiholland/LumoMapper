@@ -37,6 +37,7 @@ type FormValues = z.infer<typeof schema>;
 
 export function AuthCard() {
   const [serverMessage, setServerMessage] = useState<string | null>(null);
+  const [showSignupSuccessModal, setShowSignupSuccessModal] = useState(false);
   const [currentMode, setCurrentMode] =
     useState<FormValues["mode"]>("signup");
   const router = useRouter();
@@ -127,7 +128,7 @@ export function AuthCard() {
         ? `${window.location.origin}/auth/callback?next=/dashboard`
         : undefined;
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: values.email,
       password: values.password,
       options: {
@@ -145,9 +146,16 @@ export function AuthCard() {
       return;
     }
 
-    setServerMessage(
-      "Check your inbox to confirm your account. Once verified you can log in.",
-    );
+    // Supabase signUp returns data.user even when email confirmation is enabled
+    // The user will have email_confirmed_at: null until they click the confirmation link
+    // If emails aren't being sent, check Supabase Auth settings:
+    // 1. Go to Authentication > Providers > Email
+    // 2. Ensure "Confirm email" is enabled
+    // 3. Check "Redirect URLs" includes your domain
+    // 4. For production, configure custom SMTP (default has low rate limits)
+
+    // Show success modal
+    setShowSignupSuccessModal(true);
     setValue("mode", "login");
     setCurrentMode("login");
     setValue("password", "");
@@ -270,6 +278,67 @@ export function AuthCard() {
               : "Log in"}
         </button>
       </form>
+
+      {/* Signup Success Modal */}
+      {showSignupSuccessModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <div className="flex items-start gap-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100">
+                <svg
+                  className="h-6 w-6 text-emerald-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth="2"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"
+                  />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-slate-900">
+                  Check your inbox
+                </h3>
+                <p className="mt-2 text-sm text-slate-600">
+                  We've sent a confirmation email to your address. Once you verify your account, you can log in.
+                </p>
+                <p className="mt-3 text-xs font-medium text-slate-500">
+                  💡 Tip: Use the same browser when clicking the confirmation link
+                </p>
+              </div>
+              <button
+                onClick={() => setShowSignupSuccessModal(false)}
+                className="shrink-0 rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+                aria-label="Close"
+              >
+                <svg
+                  className="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth="2"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+            <button
+              onClick={() => setShowSignupSuccessModal(false)}
+              className="mt-6 w-full rounded-xl bg-gradient-to-r from-sun-400 to-sun-500 px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:brightness-110"
+            >
+              Got it
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
