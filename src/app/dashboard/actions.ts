@@ -55,13 +55,52 @@ export async function getLatestAssessments(limit = 3) {
     // Fetch latest assessments
     const { data: periods, error: periodsError } = await supabase
       .from("assessment_periods")
-      .select("id, year, quarter, submitted_at")
+      .select("id, year, quarter, submitted_at, company_id")
       .eq("company_id", portalUser.company_id)
       .order("year", { ascending: false })
       .order("quarter", { ascending: false })
       .limit(limit);
 
-    if (periodsError || !periods || periods.length === 0) {
+    if (periodsError) {
+      console.error("[Dashboard] Error fetching assessment periods:", periodsError);
+      return { error: "Failed to load assessments" };
+    }
+
+    if (!periods || periods.length === 0) {
+      // Debug: Check if assessments exist for this company at all
+      const { data: allPeriodsForCompany } = await supabase
+        .from("assessment_periods")
+        .select("id, year, quarter, company_id")
+        .eq("company_id", portalUser.company_id);
+      
+      // Debug: Check what company name this company_id corresponds to
+      const { data: companyInfo } = await supabase
+        .from("companies")
+        .select("id, name")
+        .eq("id", portalUser.company_id)
+        .single();
+      
+      // Debug: Check all companies to see if there's a name mismatch
+      const { data: allCompanies } = await supabase
+        .from("companies")
+        .select("id, name");
+      
+      // Debug: Check all assessment periods to see what companies have assessments
+      const { data: allPeriods } = await supabase
+        .from("assessment_periods")
+        .select("id, year, quarter, company_id");
+      
+      console.error("[Dashboard] No assessments found - Debug info:", {
+        userCompanyId: portalUser.company_id,
+        userCompanyName: companyInfo?.name,
+        totalAssessmentsForThisCompany: allPeriodsForCompany?.length ?? 0,
+        allCompanies: allCompanies?.map(c => ({ id: c.id, name: c.name })),
+        assessmentsByCompany: allPeriods?.reduce((acc, p) => {
+          acc[p.company_id] = (acc[p.company_id] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>),
+      });
+      
       return { data: [] };
     }
 

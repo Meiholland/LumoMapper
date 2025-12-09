@@ -38,15 +38,27 @@ export async function getOrCreatePortalUser(
   }
 
   // Escape special characters in company name to prevent pattern injection
+  // Note: We use ilike which is case-insensitive, but we still escape % and _ for safety
   function escapeLikePattern(input: string): string {
     return input.replace(/[%_]/g, '\\$&');
   }
 
+  // Try exact match first (case-insensitive), then fallback to pattern matching
   const { data: companies, error: companyError } = await supabase
     .from("companies")
-    .select("id")
+    .select("id, name")
     .ilike("name", escapeLikePattern(companyName))
     .limit(2);
+  
+  // Log for debugging company matching issues
+  if (companies && companies.length > 0) {
+    console.log("[PortalUser] Company matched:", {
+      requested: companyName,
+      matched: companies.map(c => ({ id: c.id, name: c.name })),
+    });
+  } else {
+    console.warn("[PortalUser] No company found for:", companyName);
+  }
 
   if (companyError) {
     throw new Error(
