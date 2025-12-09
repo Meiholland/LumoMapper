@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { createServerClient } from "@supabase/ssr";
 
 // Simple in-memory rate limiting (for development/small scale)
 // For production, consider using Redis-based rate limiting (e.g., @upstash/ratelimit)
@@ -87,6 +88,51 @@ export async function middleware(request: NextRequest) {
       count: 1,
       resetTime: now + RATE_LIMIT_WINDOW,
     });
+  }
+
+  // Refresh Supabase session to ensure cookies are synced
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  
+  if (supabaseUrl && supabaseAnonKey) {
+    const response = NextResponse.next();
+    
+    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+      cookies: {
+        get(name: string) {
+          return request.cookies.get(name)?.value;
+        },
+        set(name: string, value: string, options: any) {
+          request.cookies.set({
+            name,
+            value,
+            ...options,
+          });
+          response.cookies.set({
+            name,
+            value,
+            ...options,
+          });
+        },
+        remove(name: string, options: any) {
+          request.cookies.set({
+            name,
+            value: "",
+            ...options,
+          });
+          response.cookies.set({
+            name,
+            value: "",
+            ...options,
+          });
+        },
+      },
+    });
+
+    // Refresh session to ensure cookies are synced
+    await supabase.auth.getSession();
+
+    return response;
   }
 
   return NextResponse.next();

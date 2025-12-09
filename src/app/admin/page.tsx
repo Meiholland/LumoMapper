@@ -32,8 +32,7 @@ export default async function AdminPage() {
     metadataCompany: sessionData?.user?.user_metadata?.company_name || user?.user_metadata?.company_name,
   });
 
-  // If we have a user but no session, we can still proceed
-  // But getOrCreatePortalUser needs a session, so we need to handle this differently
+  // If we have neither session nor user, redirect to login
   if (!sessionData && !user) {
     console.error("[AdminPage] No session or user found - redirecting to login");
     redirect("/?message=Please%20log%20in%20to%20access%20the%20admin%20panel.");
@@ -41,29 +40,39 @@ export default async function AdminPage() {
 
   // Use sessionData if available, otherwise we'll need to work with user directly
   const session = sessionData;
+  
+  // If we have a user but no session, we can still check company and show request page
+  // This handles the case where cookies aren't fully synced yet but we have user info
 
   let portalUser;
   let companyName: string | null = null;
   
   try {
-    // If we don't have a session but have a user, we need to create a minimal session
-    // or fetch the portal user directly
+    // If we don't have a session but have a user, fetch portal user directly
     if (!session && user) {
       // Try to get portal user directly by auth_user_id
-      const { data: portalUserData, error: portalError } = await supabase
+      const { data: portalUserData } = await supabase
         .from("users")
-        .select("id, company_id, full_name")
+        .select("id, company_id, full_name, role")
         .eq("auth_user_id", user.id)
         .maybeSingle();
       
       if (portalUserData) {
         portalUser = portalUserData;
-        console.log("[AdminPage] Got portal user directly:", portalUser);
-      } else {
-        throw new Error("Could not find portal user");
       }
     } else if (session) {
       portalUser = await getOrCreatePortalUser(supabase, session);
+      // Fetch role separately if needed
+      if (portalUser && !('role' in portalUser)) {
+        const { data: userWithRole } = await supabase
+          .from("users")
+          .select("role")
+          .eq("id", portalUser.id)
+          .single();
+        if (userWithRole) {
+          (portalUser as any).role = userWithRole.role;
+        }
+      }
     }
     
     if (portalUser) {
@@ -79,24 +88,10 @@ export default async function AdminPage() {
       }
     }
   } catch (error) {
-    // If portal user creation fails, check if user metadata has company name
-    // This can happen if the user just signed up but hasn't been created in the portal yet
-    const metadataCompanyName = sessionData?.user?.user_metadata?.company_name || user?.user_metadata?.company_name;
-    if (metadataCompanyName) {
-      // Try to match case-insensitively
-      const { data: companies } = await supabase
-        .from("companies")
-        .select("name")
-        .ilike("name", metadataCompanyName.replace(/[%_]/g, '\\$&'))
-        .limit(1);
-      
-      if (companies && companies.length > 0) {
-        companyName = companies[0].name;
-      }
-    }
+    // If portal user lookup fails, continue - we'll check metadata
   }
 
-  // Fallback: also check metadata if we still don't have company name
+  // Fallback: check metadata if we still don't have company name
   if (!companyName) {
     const metadataCompanyName = sessionData?.user?.user_metadata?.company_name || user?.user_metadata?.company_name;
     if (metadataCompanyName) {
@@ -112,14 +107,27 @@ export default async function AdminPage() {
     }
   }
 
-  // For isAdmin check, we need a session - if we don't have one, assume not admin
-  const userIsAdmin = session ? await isAdmin(supabase, session) : false;
+  // For isAdmin check, we need a session - if we don't have one, check role from portal user
+  let userIsAdmin = false;
+  if (session) {
+    userIsAdmin = await isAdmin(supabase, session);
+  } else if (portalUser && 'role' in portalUser) {
+    // If no session but we have portal user with role, check role directly
+    userIsAdmin = (portalUser as any).role === "admin";
+  }
   
   // Case-insensitive check for Lumo Labs (check both companyName and metadata)
   const metadataCompany = sessionData?.user?.user_metadata?.company_name || user?.user_metadata?.company_name;
   const isLumoLabs = 
     companyName?.toLowerCase() === "lumo labs" ||
     metadataCompany?.toLowerCase() === "lumo labs";
+  
+  // If we have user info but no session, and user is Lumo Labs, show request page
+  // This handles the case where cookies aren't synced but we can still identify the user
+  if (!session && !user && isLumoLabs) {
+    // We don't have enough info - redirect to login
+    redirect("/?message=Please%20log%20in%20to%20access%20the%20admin%20panel.");
+  }
 
 
   // If user is from Lumo Labs but not an admin, show request access page

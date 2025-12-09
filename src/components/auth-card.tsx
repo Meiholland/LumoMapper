@@ -154,8 +154,8 @@ export function AuthCard() {
           setServerMessage("Logged in! Redirecting...");
         }
         
-        // Small delay to show the message
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Small delay to show the message and ensure cookies are set
+        await new Promise(resolve => setTimeout(resolve, 800));
         
         // Use window.location for hard navigation to ensure cookies are synced
         // This forces a full page reload which ensures server-side cookies are read correctly
