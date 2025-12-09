@@ -178,30 +178,34 @@ export async function getLatestAssessments(limit = 3) {
         uniqueQuestionIds: uniqueQuestionIds.slice(0, 10),
       });
 
-      // Try fetching questions directly by their IDs
+      // Try fetching questions directly by their IDs (without join first)
       const { data: directQuestions, error: directError } = await supabase
         .from("questions")
-        .select(`
-          id,
-          prompt,
-          sequence,
-          category_id,
-          categories (
-            id,
-            label,
-            pillar
-          )
-        `)
+        .select("id, prompt, sequence, category_id")
         .in("id", uniqueQuestionIds)
         .order("sequence");
 
       if (!directError && directQuestions && directQuestions.length > 0) {
-        console.log("[Dashboard] Found questions via direct query:", directQuestions.length);
-        // Use these questions instead - handle category structure
+        // Fetch categories separately
+        const categoryIds = [...new Set(directQuestions.map(q => q.category_id).filter(Boolean))];
+        const { data: categoriesData } = await supabase
+          .from("categories")
+          .select("id, label, pillar")
+          .in("id", categoryIds);
+
+        const categoryMap = new Map((categoriesData || []).map(c => [c.id, c]));
+
+        // Combine questions with their categories
         questions = directQuestions.map(q => ({
-          ...q,
-          categories: Array.isArray(q.categories) ? q.categories : q.categories ? [q.categories] : [],
+          id: q.id,
+          prompt: q.prompt,
+          sequence: q.sequence,
+          categories: q.category_id && categoryMap.has(q.category_id)
+            ? [categoryMap.get(q.category_id)!]
+            : [],
         })) as typeof questions;
+
+        console.log("[Dashboard] Found questions via direct query:", questions.length, "with categories");
       }
     }
 
