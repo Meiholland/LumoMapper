@@ -40,8 +40,12 @@ export default async function DashboardPage() {
     companyName = company?.name ?? null;
   }
 
-  // Special handling: Lumo Labs users should go to admin page
-  if (companyName === "Lumo Labs") {
+  // Special handling: Lumo Labs users should go to admin page (case-insensitive, fallback to metadata)
+  const normalizedCompany =
+    companyName?.toLowerCase() ??
+    session.user.user_metadata?.company_name?.toLowerCase() ??
+    null;
+  if (normalizedCompany === "lumo labs") {
     redirect("/admin");
   }
 
