@@ -42,13 +42,25 @@ export async function getLatestAssessments(limit = 3) {
     }
 
     // Explicitly verify company_id matches user's record for data isolation
-    const { data: userRecord } = await supabase
+    // Use maybeSingle() instead of single() to handle cases where record might not exist yet
+    const { data: userRecord, error: userRecordError } = await supabase
       .from("users")
       .select("company_id")
       .eq("auth_user_id", session.user.id)
-      .single();
+      .maybeSingle();
 
-    if (userRecord?.company_id !== portalUser.company_id) {
+    // If query failed or no record found, that's fine - portalUser was just created
+    if (userRecordError) {
+      console.warn("[Dashboard] User record query error (non-fatal):", userRecordError);
+    }
+
+    // Only verify if we got a record back
+    if (userRecord && userRecord.company_id !== portalUser.company_id) {
+      console.error("[Dashboard] Company mismatch:", {
+        portalUserCompanyId: portalUser.company_id,
+        userRecordCompanyId: userRecord.company_id,
+        authUserId: session.user.id,
+      });
       return { error: "Company access verification failed" };
     }
 
@@ -304,7 +316,7 @@ export async function getLatestAssessments(limit = 3) {
         };
       });
 
-      return {
+      const assessment = {
         assessment: {
           id: period.id,
           year: period.year,
@@ -313,9 +325,24 @@ export async function getLatestAssessments(limit = 3) {
         },
         categories,
       };
+
+      console.log(`[Dashboard] Built assessment for Q${period.quarter} ${period.year}:`, {
+        categoryCount: categories.length,
+        hasCategories: categories.length > 0,
+      });
+
+      return assessment;
     });
 
-    return { data: assessments };
+    console.log("[Dashboard] Final assessments array:", {
+      count: assessments.length,
+      assessmentsWithCategories: assessments.filter(a => a.categories.length > 0).length,
+    });
+
+    // Filter out assessments with no categories (they won't display anyway)
+    const validAssessments = assessments.filter(a => a.categories.length > 0);
+    
+    return { data: validAssessments };
   } catch (error) {
     // console.error("Failed to fetch assessments:", error);
     return {

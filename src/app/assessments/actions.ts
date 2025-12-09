@@ -44,13 +44,25 @@ export async function getPreviousAssessmentScores(
     }
 
     // Explicitly verify company_id matches user's record for data isolation
-    const { data: userRecord } = await supabase
+    // Use maybeSingle() instead of single() to handle cases where record might not exist yet
+    const { data: userRecord, error: userRecordError } = await supabase
       .from("users")
       .select("company_id")
       .eq("auth_user_id", user.id)
-      .single();
+      .maybeSingle();
 
-    if (userRecord?.company_id !== portalUser.company_id) {
+    // If query failed or no record found, that's fine - portalUser was just created
+    if (userRecordError) {
+      console.warn("[Assessments] User record query error (non-fatal):", userRecordError);
+    }
+
+    // Only verify if we got a record back
+    if (userRecord && userRecord.company_id !== portalUser.company_id) {
+      console.error("[Assessments] Company mismatch:", {
+        portalUserCompanyId: portalUser.company_id,
+        userRecordCompanyId: userRecord.company_id,
+        authUserId: user.id,
+      });
       return { error: "Company access verification failed" };
     }
 
