@@ -102,18 +102,39 @@ export function AuthCard() {
         }
 
         // Check if user is admin and redirect accordingly
-        setServerMessage("Logged in! Redirecting...");
+        setServerMessage("Authenticating...");
         // console.info("[AuthCard] Checking admin status and redirecting");
         
-        // Fetch user role to determine redirect
+        // Fetch user role and company name to determine redirect and show company
         const { data: userData } = await supabase
           .from("users")
-          .select("role")
+          .select("role, company_id, companies(name)")
           .eq("auth_user_id", data.user.id)
           .limit(1)
           .maybeSingle();
 
+        // Extract company name from Supabase relation (can be object or array)
+        let companyName: string | null = null;
+        if (userData?.companies) {
+          if (Array.isArray(userData.companies) && userData.companies.length > 0) {
+            companyName = userData.companies[0]?.name ?? null;
+          } else if (typeof userData.companies === 'object' && 'name' in userData.companies) {
+            companyName = (userData.companies as { name: string }).name;
+          }
+        }
+
         const redirectPath = userData?.role === "admin" ? "/admin" : "/dashboard";
+        
+        // Show success message with company name
+        if (companyName) {
+          setServerMessage(`Logged in as ${companyName}! Redirecting...`);
+        } else {
+          setServerMessage("Logged in! Redirecting...");
+        }
+        
+        // Small delay to show the message
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
         // console.info("[AuthCard] Navigating to", redirectPath);
         await router.push(redirectPath);
         router.refresh();
