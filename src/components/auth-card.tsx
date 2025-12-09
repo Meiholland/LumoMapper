@@ -139,7 +139,13 @@ export function AuthCard() {
           companyName = companyData?.name ?? null;
         }
 
-        const redirectPath = userData?.role === "admin" ? "/admin" : "/dashboard";
+        // Special handling: Lumo Labs users always go to admin page
+        let redirectPath = "/dashboard";
+        if (companyName === "Lumo Labs") {
+          redirectPath = "/admin";
+        } else if (userData?.role === "admin") {
+          redirectPath = "/admin";
+        }
         
         // Show success message with company name
         if (companyName) {
@@ -151,7 +157,6 @@ export function AuthCard() {
         // Small delay to show the message
         await new Promise(resolve => setTimeout(resolve, 500));
         
-        // console.info("[AuthCard] Navigating to", redirectPath);
         await router.push(redirectPath);
         router.refresh();
       } catch (loginError) {
@@ -161,9 +166,11 @@ export function AuthCard() {
       return;
     }
 
+    // Lumo Labs users should be redirected to admin page after email confirmation
+    const nextPath = values.companyName === "Lumo Labs" ? "/admin" : "/dashboard";
     const redirectTo =
       typeof window !== "undefined"
-        ? `${window.location.origin}/auth/callback?next=/dashboard`
+        ? `${window.location.origin}/auth/callback?next=${nextPath}`
         : undefined;
 
     const { data, error } = await supabase.auth.signUp({

@@ -40,6 +40,11 @@ export default async function DashboardPage() {
     companyName = company?.name ?? null;
   }
 
+  // Special handling: Lumo Labs users should go to admin page
+  if (companyName === "Lumo Labs") {
+    redirect("/admin");
+  }
+
   const assessmentsResult = await getLatestAssessments(3);
   const assessments = assessmentsResult.data ?? [];
 

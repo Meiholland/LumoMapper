@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSupabaseServerClient } from "@/lib/supabase/server-client";
+import { getOrCreatePortalUser } from "@/lib/supabase/portal-user";
 import { isAdmin } from "@/lib/supabase/admin";
+import { RequestAdminAccess } from "@/components/request-admin-access";
 
 export const dynamic = 'force-dynamic';
 
@@ -15,8 +17,70 @@ export default async function AdminPage() {
     redirect("/?message=Please%20log%20in%20to%20access%20the%20admin%20panel.");
   }
 
+  let portalUser;
+  let companyName: string | null = null;
+  
+  try {
+    portalUser = await getOrCreatePortalUser(supabase, session);
+    
+    // Fetch company name
+    if (portalUser.company_id) {
+      const { data: company } = await supabase
+        .from("companies")
+        .select("name")
+        .eq("id", portalUser.company_id)
+        .single();
+      companyName = company?.name ?? null;
+    }
+  } catch (error) {
+    // If portal user creation fails, check if user metadata has company name
+    // This can happen if the user just signed up but hasn't been created in the portal yet
+    const metadataCompanyName = session.user.user_metadata?.company_name;
+    if (metadataCompanyName) {
+      // Try to match case-insensitively
+      const { data: companies } = await supabase
+        .from("companies")
+        .select("name")
+        .ilike("name", metadataCompanyName.replace(/[%_]/g, '\\$&'))
+        .limit(1);
+      
+      if (companies && companies.length > 0) {
+        companyName = companies[0].name;
+      }
+    }
+    
+    // If we still don't have a company name, show error
+    if (!companyName) {
+      return (
+        <div className="mx-auto flex min-h-screen max-w-2xl flex-col items-center justify-center gap-8 px-4 py-16">
+          <div className="w-full rounded-3xl border border-rose-200 bg-rose-50 p-8 shadow-xl">
+            <h1 className="text-2xl font-semibold text-rose-900">Error</h1>
+            <p className="mt-2 text-rose-700">
+              {error instanceof Error ? error.message : "Failed to load your profile. Please try logging out and back in."}
+            </p>
+            <Link
+              href="/"
+              className="mt-6 inline-flex items-center rounded-full border border-rose-300 px-5 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-100"
+            >
+              Back to Home
+            </Link>
+          </div>
+        </div>
+      );
+    }
+  }
+
   const userIsAdmin = await isAdmin(supabase, session);
-  if (!userIsAdmin) {
+  // Case-insensitive check for Lumo Labs
+  const isLumoLabs = companyName?.toLowerCase() === "lumo labs";
+
+  // If user is from Lumo Labs but not an admin, show request access page
+  if (isLumoLabs && !userIsAdmin) {
+    return <RequestAdminAccess />;
+  }
+
+  // If user is not from Lumo Labs and not an admin, redirect to dashboard
+  if (!isLumoLabs && !userIsAdmin) {
     redirect("/dashboard?message=You%20do%20not%20have%20admin%20access.");
   }
 
