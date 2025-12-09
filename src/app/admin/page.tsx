@@ -48,31 +48,29 @@ export default async function AdminPage() {
         companyName = companies[0].name;
       }
     }
-    
-    // If we still don't have a company name, show error
-    if (!companyName) {
-      return (
-        <div className="mx-auto flex min-h-screen max-w-2xl flex-col items-center justify-center gap-8 px-4 py-16">
-          <div className="w-full rounded-3xl border border-rose-200 bg-rose-50 p-8 shadow-xl">
-            <h1 className="text-2xl font-semibold text-rose-900">Error</h1>
-            <p className="mt-2 text-rose-700">
-              {error instanceof Error ? error.message : "Failed to load your profile. Please try logging out and back in."}
-            </p>
-            <Link
-              href="/"
-              className="mt-6 inline-flex items-center rounded-full border border-rose-300 px-5 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-100"
-            >
-              Back to Home
-            </Link>
-          </div>
-        </div>
-      );
+  }
+
+  // Fallback: also check metadata if we still don't have company name
+  if (!companyName) {
+    const metadataCompanyName = session.user.user_metadata?.company_name;
+    if (metadataCompanyName) {
+      const { data: companies } = await supabase
+        .from("companies")
+        .select("name")
+        .ilike("name", metadataCompanyName.replace(/[%_]/g, '\\$&'))
+        .limit(1);
+      
+      if (companies && companies.length > 0) {
+        companyName = companies[0].name;
+      }
     }
   }
 
   const userIsAdmin = await isAdmin(supabase, session);
-  // Case-insensitive check for Lumo Labs
-  const isLumoLabs = companyName?.toLowerCase() === "lumo labs";
+  // Case-insensitive check for Lumo Labs (check both companyName and metadata)
+  const isLumoLabs = 
+    companyName?.toLowerCase() === "lumo labs" ||
+    session.user.user_metadata?.company_name?.toLowerCase() === "lumo labs";
 
   // If user is from Lumo Labs but not an admin, show request access page
   if (isLumoLabs && !userIsAdmin) {
