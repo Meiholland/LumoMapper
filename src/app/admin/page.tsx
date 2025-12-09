@@ -9,61 +9,96 @@ export const dynamic = 'force-dynamic';
 
 export default async function AdminPage() {
   const supabase = await getSupabaseServerClient();
+  
+  // Try both getSession and getUser to see which works
   const {
-    data: { session },
+    data: { session: sessionData },
     error: sessionError,
   } = await supabase.auth.getSession();
+
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
 
   // Debug logging - also log available cookies for debugging
   const cookieStore = await import("next/headers").then(m => m.cookies());
   const allCookies = cookieStore.getAll();
   console.log("[AdminPage] Session check:", {
-    hasSession: !!session,
+    hasSession: !!sessionData,
     sessionError: sessionError?.message,
-    userId: session?.user?.id,
-    email: session?.user?.email,
-    metadataCompany: session?.user?.user_metadata?.company_name,
+    hasUser: !!user,
+    userError: userError?.message,
+    userId: sessionData?.user?.id || user?.id,
+    email: sessionData?.user?.email || user?.email,
+    metadataCompany: sessionData?.user?.user_metadata?.company_name || user?.user_metadata?.company_name,
     cookieCount: allCookies.length,
     cookieNames: allCookies.map(c => c.name),
   });
 
-  if (!session) {
-    console.error("[AdminPage] No session found - redirecting to login");
+  // If we have a user but no session, we can still proceed
+  // But getOrCreatePortalUser needs a session, so we need to handle this differently
+  if (!sessionData && !user) {
+    console.error("[AdminPage] No session or user found - redirecting to login");
     redirect("/?message=Please%20log%20in%20to%20access%20the%20admin%20panel.");
   }
+
+  // Use sessionData if available, otherwise we'll need to work with user directly
+  const session = sessionData;
 
   let portalUser;
   let companyName: string | null = null;
   
   try {
-    portalUser = await getOrCreatePortalUser(supabase, session);
-    console.log("[AdminPage] Portal user:", {
-      userId: portalUser.id,
-      companyId: portalUser.company_id,
-      fullName: portalUser.full_name,
-    });
-    
-    // Fetch company name
-    if (portalUser.company_id) {
-      const { data: company, error: companyError } = await supabase
-        .from("companies")
-        .select("name")
-        .eq("id", portalUser.company_id)
-        .single();
+    // If we don't have a session but have a user, we need to create a minimal session
+    // or fetch the portal user directly
+    if (!session && user) {
+      // Try to get portal user directly by auth_user_id
+      const { data: portalUserData, error: portalError } = await supabase
+        .from("users")
+        .select("id, company_id, full_name")
+        .eq("auth_user_id", user.id)
+        .maybeSingle();
       
-      console.log("[AdminPage] Company lookup:", {
+      if (portalUserData) {
+        portalUser = portalUserData;
+        console.log("[AdminPage] Got portal user directly:", portalUser);
+      } else {
+        throw new Error("Could not find portal user");
+      }
+    } else if (session) {
+      portalUser = await getOrCreatePortalUser(supabase, session);
+    }
+    
+    if (portalUser) {
+      console.log("[AdminPage] Portal user:", {
+        userId: portalUser.id,
         companyId: portalUser.company_id,
-        companyName: company?.name,
-        error: companyError?.message,
+        fullName: portalUser.full_name,
       });
       
-      companyName = company?.name ?? null;
+      // Fetch company name
+      if (portalUser.company_id) {
+        const { data: company, error: companyError } = await supabase
+          .from("companies")
+          .select("name")
+          .eq("id", portalUser.company_id)
+          .single();
+        
+        console.log("[AdminPage] Company lookup:", {
+          companyId: portalUser.company_id,
+          companyName: company?.name,
+          error: companyError?.message,
+        });
+        
+        companyName = company?.name ?? null;
+      }
     }
   } catch (error) {
     console.error("[AdminPage] Error getting portal user:", error);
     // If portal user creation fails, check if user metadata has company name
     // This can happen if the user just signed up but hasn't been created in the portal yet
-    const metadataCompanyName = session.user.user_metadata?.company_name;
+    const metadataCompanyName = sessionData?.user?.user_metadata?.company_name || user?.user_metadata?.company_name;
     if (metadataCompanyName) {
       // Try to match case-insensitively
       const { data: companies } = await supabase
@@ -81,7 +116,7 @@ export default async function AdminPage() {
 
   // Fallback: also check metadata if we still don't have company name
   if (!companyName) {
-    const metadataCompanyName = session.user.user_metadata?.company_name;
+    const metadataCompanyName = sessionData?.user?.user_metadata?.company_name || user?.user_metadata?.company_name;
     console.log("[AdminPage] Fallback metadata check:", metadataCompanyName);
     if (metadataCompanyName) {
       const { data: companies } = await supabase
@@ -97,15 +132,18 @@ export default async function AdminPage() {
     }
   }
 
-  const userIsAdmin = await isAdmin(supabase, session);
+  // For isAdmin check, we need a session - if we don't have one, assume not admin
+  const userIsAdmin = session ? await isAdmin(supabase, session) : false;
+  
   // Case-insensitive check for Lumo Labs (check both companyName and metadata)
+  const metadataCompany = sessionData?.user?.user_metadata?.company_name || user?.user_metadata?.company_name;
   const isLumoLabs = 
     companyName?.toLowerCase() === "lumo labs" ||
-    session.user.user_metadata?.company_name?.toLowerCase() === "lumo labs";
+    metadataCompany?.toLowerCase() === "lumo labs";
 
   console.log("[AdminPage] Final checks:", {
     companyName,
-    metadataCompany: session.user.user_metadata?.company_name,
+    metadataCompany: sessionData?.user?.user_metadata?.company_name || user?.user_metadata?.company_name,
     isLumoLabs,
     userIsAdmin,
   });
