@@ -319,16 +319,25 @@ export async function importAssessmentFromJson(payload: ImportPayload) {
           // console.log(`[Import]   Normalized: "${normalizedStatement.substring(0, 80)}${normalizedStatement.length > 80 ? "..." : ""}"`);
 
           // Convert score to number
+          // Support both 0-5 and 0-10 scales, converting 0-10 to 0-5 by dividing by 2
           let finalScore = 0;
           if (score !== null && score !== undefined) {
             const numValue =
               typeof score === "string" ? parseFloat(score) : Number(score);
-            if (!Number.isNaN(numValue) && numValue >= 0 && numValue <= 5) {
-              finalScore = Math.round(numValue);
+            if (!Number.isNaN(numValue) && numValue >= 0) {
+              if (numValue <= 5) {
+                // Already in 0-5 scale
+                finalScore = Math.round(numValue);
+              } else if (numValue <= 10) {
+                // Convert from 0-10 scale to 0-5 scale
+                finalScore = Math.round(numValue / 2);
+              } else {
+                // Invalid score (> 10), clamp to 5
+                finalScore = 5;
+              }
             } else {
-              // console.warn(
-              //   `[Import] ⚠️ Invalid score for "${statement.substring(0, 60)}...": ${score}. Using 0.`,
-              // );
+              // Invalid score (NaN or negative), use 0
+              finalScore = 0;
             }
           }
 

@@ -8,7 +8,10 @@
     "start": "next start",
     "lint": "eslint",
     "seed:questions": "node scripts/seed-question-bank.mjs",
-    "grant:admin": "node scripts/grant-admin.mjs"
+    "grant:admin": "node scripts/grant-admin.mjs",
+    "debug:company": "node scripts/debug-company-data.mjs",
+    "compare:questions": "node scripts/compare-json-db-questions.mjs",
+    "delete:orphaned": "node scripts/delete-orphaned-questions.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
