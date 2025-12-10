@@ -22,6 +22,9 @@ export async function POST(request: NextRequest) {
   const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
     cookies: {
       get(name: string) {
+        // Try request cookies first (set by client-side), then cookieStore
+        const requestCookie = request.cookies.get(name)?.value;
+        if (requestCookie) return requestCookie;
         return cookieStore.get(name)?.value;
       },
       set(name: string, value: string, options: any) {
@@ -30,6 +33,7 @@ export async function POST(request: NextRequest) {
           httpOnly: true,
           secure: isProduction || origin.startsWith('https://'),
           sameSite: 'lax' as const,
+          path: '/',
         };
         cookieStore.set({ name, value, ...secureOptions });
         response.cookies.set({ name, value, ...secureOptions });
@@ -40,14 +44,37 @@ export async function POST(request: NextRequest) {
           httpOnly: true,
           secure: isProduction || origin.startsWith('https://'),
           sameSite: 'lax' as const,
+          path: '/',
+          maxAge: 0, // Explicitly expire the cookie
         };
+        // Clear from both cookieStore and response
         cookieStore.set({ name, value: "", ...secureOptions });
         response.cookies.set({ name, value: "", ...secureOptions });
+        // Also delete from request cookies if present
+        request.cookies.delete(name);
       },
     },
   });
 
+  // Sign out - this will clear all auth cookies
   await supabase.auth.signOut();
+  
+  // Explicitly clear any remaining Supabase cookies by name pattern
+  // Supabase uses cookies like sb-<project-ref>-auth-token
+  const allCookies = request.cookies.getAll();
+  for (const cookie of allCookies) {
+    if (cookie.name.includes('sb-') || cookie.name.includes('supabase')) {
+      const secureOptions = {
+        httpOnly: true,
+        secure: isProduction || origin.startsWith('https://'),
+        sameSite: 'lax' as const,
+        path: '/',
+        maxAge: 0,
+      };
+      response.cookies.set({ name: cookie.name, value: "", ...secureOptions });
+      cookieStore.set({ name: cookie.name, value: "", ...secureOptions });
+    }
+  }
 
   return response;
 }

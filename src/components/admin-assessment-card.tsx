@@ -40,9 +40,10 @@ export function AdminAssessmentCard({ companyId, assessment }: AssessmentCardPro
   };
 
   return (
-    <div className="group relative rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 transition hover:border-sun-400 hover:bg-sun-50 hover:shadow-sm">
+    <div className="group relative z-0 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 transition hover:border-sun-400 hover:bg-sun-50 hover:shadow-sm">
       <Link
         href={`/admin/overview/${companyId}/${assessment.id}`}
+        prefetch={false}
         className="block"
       >
         <div className="flex items-center justify-between">

@@ -85,74 +85,29 @@ export function AuthCard() {
     setServerMessage(null);
 
     if (values.mode === "login") {
-      try {
-        setServerMessage("Authenticating...");
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: values.email,
-          password: values.password,
-        });
-
-        if (error) {
-          setServerMessage(error.message);
-          return;
-        }
-
-        // Check if user is admin and redirect accordingly
-        setServerMessage("Authenticating...");
-        
-        // Fetch user role and company name to determine redirect and show company
-        const { data: userData } = await supabase
-          .from("users")
-          .select("role, company_id, companies(name)")
-          .eq("auth_user_id", data.user.id)
-          .limit(1)
-          .maybeSingle();
-
-        // Extract company name from Supabase relation (can be object or array)
-        let companyName: string | null = null;
-        if (userData?.companies) {
-          if (Array.isArray(userData.companies) && userData.companies.length > 0) {
-            companyName = userData.companies[0]?.name ?? null;
-          } else if (typeof userData.companies === 'object' && 'name' in userData.companies) {
-            companyName = (userData.companies as { name: string }).name;
-          }
-        }
-
-        // Fallback: fetch company separately if relation didn't work
-        if (!companyName && userData?.company_id) {
-          const { data: companyData } = await supabase
-            .from("companies")
-            .select("name")
-            .eq("id", userData.company_id)
-            .single();
-          companyName = companyData?.name ?? null;
-        }
-
-        // Special handling: Lumo Labs users always go to admin page
-        let redirectPath = "/dashboard";
-        if (companyName === "Lumo Labs") {
-          redirectPath = "/admin";
-        } else if (userData?.role === "admin") {
-          redirectPath = "/admin";
-        }
-        
-        // Show success message with company name
-        if (companyName) {
-          setServerMessage(`Logged in as ${companyName}! Redirecting...`);
-        } else {
-          setServerMessage("Logged in! Redirecting...");
-        }
-        
-        // Small delay to ensure cookies are set
-        await new Promise(resolve => setTimeout(resolve, 300));
-        
-        // Redirect directly - middleware will handle session refresh
-        // Using window.location ensures cookies are sent with the request
-        window.location.href = redirectPath;
-      } catch (loginError) {
-        console.error("[AuthCard] Login error:", loginError);
-        setServerMessage("Something went wrong. Please try again.");
-      }
+      // Use server-side login route to avoid client/server cookie sync issues
+      setServerMessage("Authenticating...");
+      
+      // Create form and submit to server-side login route
+      const form = document.createElement("form");
+      form.method = "POST";
+      form.action = "/api/auth/login";
+      
+      const emailInput = document.createElement("input");
+      emailInput.type = "hidden";
+      emailInput.name = "email";
+      emailInput.value = values.email;
+      
+      const passwordInput = document.createElement("input");
+      passwordInput.type = "hidden";
+      passwordInput.name = "password";
+      passwordInput.value = values.password;
+      
+      form.appendChild(emailInput);
+      form.appendChild(passwordInput);
+      document.body.appendChild(form);
+      form.submit();
+      
       return;
     }
 

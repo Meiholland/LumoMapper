@@ -66,7 +66,9 @@ export default async function OverviewPage() {
               <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
                 <Link
                   href={`/admin/overview/${company.id}/all`}
-                  className="group rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-3 transition hover:border-sun-400 hover:bg-sun-50 hover:shadow-sm"
+                  prefetch={false}
+                  className="group relative z-10 rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 px-4 py-3 transition hover:border-sun-400 hover:bg-sun-50 hover:shadow-sm active:scale-[0.98]"
+                  style={{ pointerEvents: 'auto' }}
                 >
                   <div className="flex items-center justify-between">
                     <div className="text-sm font-semibold text-slate-700 group-hover:text-sun-700">

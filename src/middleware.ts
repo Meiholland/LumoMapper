@@ -104,10 +104,11 @@ export async function middleware(request: NextRequest) {
     const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
       cookies: {
         get(name: string) {
+          // Read from request cookies (set by client-side or previous server response)
           return request.cookies.get(name)?.value;
         },
         set(name: string, value: string, options: any) {
-          // Set cookies with proper attributes
+          // Set cookies with proper attributes matching what createBrowserClient uses
           const secureOptions = {
             ...options,
             httpOnly: options?.httpOnly ?? true,
@@ -128,6 +129,7 @@ export async function middleware(request: NextRequest) {
             secure: process.env.NODE_ENV === "production" || request.url.startsWith("https://"),
             sameSite: "lax" as const,
             path: "/",
+            maxAge: 0,
           };
           response.cookies.set({
             name,
@@ -140,7 +142,13 @@ export async function middleware(request: NextRequest) {
 
     // Refresh session to ensure cookies are synced
     // This will read cookies from the request and refresh them if needed
-    await supabase.auth.getSession();
+    // If cookies were just set client-side, this will make them available server-side
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    // If we have a session, getUser will refresh it and ensure cookies are set
+    if (session) {
+      await supabase.auth.getUser();
+    }
 
     return response;
   }
