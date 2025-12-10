@@ -91,10 +91,14 @@ export async function middleware(request: NextRequest) {
   }
 
   // Refresh Supabase session to ensure cookies are synced
+  // Only do this for non-API routes to avoid interfering with route handlers
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   
-  if (supabaseUrl && supabaseAnonKey) {
+  // Skip session refresh for API routes (they handle their own auth)
+  const isApiRoute = pathname.startsWith("/api/");
+  
+  if (supabaseUrl && supabaseAnonKey && !isApiRoute) {
     const response = NextResponse.next();
     
     const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
@@ -103,33 +107,39 @@ export async function middleware(request: NextRequest) {
           return request.cookies.get(name)?.value;
         },
         set(name: string, value: string, options: any) {
-          request.cookies.set({
-            name,
-            value,
+          // Set cookies with proper attributes
+          const secureOptions = {
             ...options,
-          });
+            httpOnly: options?.httpOnly ?? true,
+            secure: process.env.NODE_ENV === "production" || request.url.startsWith("https://"),
+            sameSite: "lax" as const,
+            path: "/",
+          };
           response.cookies.set({
             name,
             value,
-            ...options,
+            ...secureOptions,
           });
         },
         remove(name: string, options: any) {
-          request.cookies.set({
-            name,
-            value: "",
+          const secureOptions = {
             ...options,
-          });
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production" || request.url.startsWith("https://"),
+            sameSite: "lax" as const,
+            path: "/",
+          };
           response.cookies.set({
             name,
             value: "",
-            ...options,
+            ...secureOptions,
           });
         },
       },
     });
 
     // Refresh session to ensure cookies are synced
+    // This will read cookies from the request and refresh them if needed
     await supabase.auth.getSession();
 
     return response;
@@ -149,3 +159,4 @@ export const config = {
     "/((?!_next/static|_next/image|favicon.ico).*)",
   ],
 };
+

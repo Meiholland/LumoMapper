@@ -84,3 +84,4 @@ If users click the confirmation link and it doesn't work:
 - Signup component: `src/components/auth-card.tsx`
 - Auth callback handler: `src/app/auth/callback/route.ts`
 - Browser client: `src/lib/supabase/browser-client.ts`
+

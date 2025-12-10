@@ -21,20 +21,21 @@ export default async function AdminPage() {
     error: userError,
   } = await supabase.auth.getUser();
 
-  // Debug logging
-  console.log("[AdminPage] Session check:", {
-    hasSession: !!sessionData,
-    sessionError: sessionError?.message,
-    hasUser: !!user,
-    userError: userError?.message,
-    userId: sessionData?.user?.id || user?.id,
-    email: sessionData?.user?.email || user?.email,
-    metadataCompany: sessionData?.user?.user_metadata?.company_name || user?.user_metadata?.company_name,
-  });
+  // Debug logging (only in development)
+  if (process.env.NODE_ENV === "development") {
+    console.log("[AdminPage] Session check:", {
+      hasSession: !!sessionData,
+      sessionError: sessionError?.message,
+      hasUser: !!user,
+      userError: userError?.message,
+      userId: sessionData?.user?.id || user?.id,
+      email: sessionData?.user?.email || user?.email,
+      metadataCompany: sessionData?.user?.user_metadata?.company_name || user?.user_metadata?.company_name,
+    });
+  }
 
   // If we have neither session nor user, redirect to login
   if (!sessionData && !user) {
-    console.error("[AdminPage] No session or user found - redirecting to login");
     redirect("/?message=Please%20log%20in%20to%20access%20the%20admin%20panel.");
   }
 

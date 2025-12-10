@@ -211,3 +211,4 @@ CREATE POLICY "Admins can manage all responses"
       WHERE auth_user_id = auth.uid() AND role = 'admin'
     )
   );
+

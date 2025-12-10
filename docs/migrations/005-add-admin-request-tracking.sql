@@ -13,3 +13,4 @@ WHERE admin_requested_at IS NOT NULL;
 
 -- Add comment for documentation
 COMMENT ON COLUMN public.users.admin_requested_at IS 'Timestamp when user requested admin access. NULL if no request, timestamp if request is pending.';
+

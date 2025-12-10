@@ -67,12 +67,10 @@ export function AuthCard() {
   });
 
   const supabase = useMemo(() => {
-    // console.info("[AuthCard] Creating supabase browser client");
     return getSupabaseBrowserClient();
   }, []);
 
   useEffect(() => {
-    // console.info("[AuthCard] Current mode changed:", currentMode);
   }, [currentMode]);
 
   useEffect(() => {
@@ -84,32 +82,23 @@ export function AuthCard() {
   }, [currentMode, setValue]);
 
   const onSubmit = handleSubmit(async (values) => {
-    // console.debug("[AuthCard] onSubmit payload", values);
     setServerMessage(null);
 
     if (values.mode === "login") {
       try {
         setServerMessage("Authenticating...");
-        // console.info("[AuthCard] Calling signInWithPassword");
         const { data, error } = await supabase.auth.signInWithPassword({
           email: values.email,
           password: values.password,
         });
 
-        // console.info("[AuthCard] signInWithPassword response:", {
-        //   data,
-        //   error,
-        // });
-
         if (error) {
           setServerMessage(error.message);
-          // console.warn("[AuthCard] Supabase login error shown to user");
           return;
         }
 
         // Check if user is admin and redirect accordingly
         setServerMessage("Authenticating...");
-        // console.info("[AuthCard] Checking admin status and redirecting");
         
         // Fetch user role and company name to determine redirect and show company
         const { data: userData } = await supabase
@@ -154,15 +143,15 @@ export function AuthCard() {
           setServerMessage("Logged in! Redirecting...");
         }
         
-        // Small delay to show the message and ensure cookies are set
-        await new Promise(resolve => setTimeout(resolve, 800));
+        // Small delay to ensure cookies are set
+        await new Promise(resolve => setTimeout(resolve, 300));
         
-        // Use window.location for hard navigation to ensure cookies are synced
-        // This forces a full page reload which ensures server-side cookies are read correctly
+        // Redirect directly - middleware will handle session refresh
+        // Using window.location ensures cookies are sent with the request
         window.location.href = redirectPath;
       } catch (loginError) {
-        // console.error("[AuthCard] Unexpected login exception", loginError);
-        setServerMessage("Something went wrong. Check the console for details.");
+        console.error("[AuthCard] Login error:", loginError);
+        setServerMessage("Something went wrong. Please try again.");
       }
       return;
     }
@@ -187,7 +176,6 @@ export function AuthCard() {
     });
 
     if (error) {
-      // console.error("Supabase sign-up error:", error);
       setServerMessage(error.message);
       return;
     }
@@ -210,12 +198,6 @@ export function AuthCard() {
   const handleModeChange = (nextMode: FormValues["mode"]) => {
     setServerMessage(null);
     setCurrentMode(nextMode);
-    // console.debug(
-    //   "[AuthCard] Mode switched to",
-    //   nextMode,
-    //   "current form values",
-    //   getValues(),
-    // );
   };
 
   return (
