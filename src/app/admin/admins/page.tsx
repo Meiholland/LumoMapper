@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useEffect } from "react";
 import Link from "next/link";
-import { grantAdminRoleByAuthId, revokeAdminRoleByAuthId, getAllUsers } from "./actions";
+import { grantAdminRoleByAuthId, revokeAdminRoleByAuthId, getAllUsers, deleteUserByAuthId } from "./actions";
 
 type User = {
   id: string;
@@ -78,6 +78,25 @@ export default function AdminsPage() {
     });
   };
 
+  const onDeleteUser = (authUserId: string, email: string, fullName: string) => {
+    if (!confirm(`Are you sure you want to delete ${fullName} (${email})? This action cannot be undone and will remove all their data.`)) {
+      return;
+    }
+    setStatus({ type: "idle" });
+    startTransition(async () => {
+      const result = await deleteUserByAuthId(authUserId);
+      if (result.error) {
+        setStatus({ type: "error", message: result.error });
+        return;
+      }
+      setStatus({
+        type: "success",
+        message: `User ${fullName} has been deleted`,
+      });
+      loadUsers();
+    });
+  };
+
   return (
     <div className="mx-auto flex min-h-screen max-w-6xl flex-col gap-8 px-4 py-16">
       <header>
@@ -112,7 +131,7 @@ export default function AdminsPage() {
           All Users
         </h2>
         <p className="mb-6 text-sm text-slate-600">
-          Manage admin access for all registered users. Click "Make Admin" or "Revoke" to change their role.
+          Manage admin access for all registered users. Click "Make Admin" or "Revoke" to change their role. Use "Delete" to permanently remove a user and all their data.
         </p>
         {isLoading ? (
           <p className="text-sm text-slate-500">Loading users...</p>
@@ -151,7 +170,7 @@ export default function AdminsPage() {
                     </div>
                   )}
                 </div>
-                <div className="ml-4">
+                <div className="ml-4 flex items-center gap-2">
                   {user.role === "admin" ? (
                     <button
                       onClick={() => onRevokeAdmin(user.auth_user_id, user.email)}
@@ -169,6 +188,14 @@ export default function AdminsPage() {
                       {isPending ? "Granting..." : "Make Admin"}
                     </button>
                   )}
+                  <button
+                    onClick={() => onDeleteUser(user.auth_user_id, user.email, user.full_name)}
+                    className="rounded-lg border border-red-300 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-100 disabled:opacity-50"
+                    disabled={isPending}
+                    title="Delete user permanently"
+                  >
+                    {isPending ? "Deleting..." : "Delete"}
+                  </button>
                 </div>
               </div>
             ))}

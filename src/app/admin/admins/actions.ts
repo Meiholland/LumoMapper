@@ -426,3 +426,60 @@ export async function revokeAdminRole(email: string) {
   }
 }
 
+/**
+ * Delete a user by auth_user_id
+ * This will delete the user from auth.users, which will cascade delete from public.users
+ * Assessment periods submitted by this user will have submitted_by set to null
+ */
+export async function deleteUserByAuthId(authUserId: string) {
+  const supabase = await getSupabaseServerClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+
+  if (!session) {
+    return { error: "Not authenticated" };
+  }
+
+  const userIsAdmin = await isAdmin(supabase, session);
+  if (!userIsAdmin) {
+    return { error: "Not authorized" };
+  }
+
+  // Prevent users from deleting themselves
+  if (session.user.id === authUserId) {
+    return { error: "You cannot delete your own account" };
+  }
+
+  try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !serviceRoleKey) {
+      return { error: "Missing service role key" };
+    }
+
+    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
+
+    // Delete the user from auth.users
+    // This will cascade delete from public.users due to the foreign key constraint
+    // Assessment periods will have submitted_by set to null due to on delete set null
+    const { error: deleteError } = await adminClient.auth.admin.deleteUser(authUserId);
+
+    if (deleteError) {
+      return { error: deleteError.message };
+    }
+
+    return { success: true };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : "Failed to delete user",
+    };
+  }
+}
+
