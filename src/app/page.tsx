@@ -21,7 +21,7 @@ export default async function Home({
           <div className="relative flex flex-col gap-6 rounded-3xl border border-white/60 bg-white/50 p-10 text-slate-900 shadow-xl shadow-sun-200/30 backdrop-blur">
             <div className="inline-flex items-center gap-2 self-start rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold tracking-widest text-slate-500">
               <span className="h-2 w-2 rounded-full bg-sun-500" />
-              Portfolio Intelligence
+              LUMO Portfolio Intelligence
             </div>
             <h1 className="text-4xl font-semibold leading-tight tracking-tight md:text-5xl">
               Discover your growth readiness with radar clarity.

@@ -11,15 +11,22 @@
     "grant:admin": "node scripts/grant-admin.mjs",
     "debug:company": "node scripts/debug-company-data.mjs",
     "compare:questions": "node scripts/compare-json-db-questions.mjs",
-    "delete:orphaned": "node scripts/delete-orphaned-questions.mjs"
+    "delete:orphaned": "node scripts/delete-orphaned-questions.mjs",
+    "import:reports": "node scripts/import-monthly-reports.mjs",
+    "sync:reports": "node scripts/fetch-monthly-reports-from-sheets.mjs",
+    "clean:companies": "node scripts/clean-company-names.mjs",
+    "check:gemini": "node scripts/check-gemini-models.mjs",
+    "debug:prompt": "node scripts/debug-quarterly-review-prompt.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
     "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.84.0",
+    "@google/generative-ai": "^0.21.0",
     "chart.js": "^4.5.1",
     "clsx": "^2.1.1",
+    "googleapis": "^144.0.0",
     "next": "^16.0.7",
     "react": "^19.2.1",
     "react-chartjs-2": "^5.3.1",

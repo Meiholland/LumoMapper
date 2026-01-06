@@ -99,6 +99,35 @@ export default async function OverviewPage() {
                     assessment={assessment}
                   />
                 ))}
+                {company.assessments.length >= 2 && (
+                  <Link
+                    href={`/admin/overview/${company.id}/review/${company.assessments[0].year}/${company.assessments[0].quarter}`}
+                    className="group relative z-10 rounded-xl border-2 border-solid border-blue-300 bg-blue-50 px-4 py-3 transition hover:border-blue-400 hover:bg-blue-100 hover:shadow-sm active:scale-[0.98]"
+                    style={{ pointerEvents: 'auto' }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm font-semibold text-blue-700 group-hover:text-blue-800">
+                        Quarterly Review
+                      </div>
+                      <svg
+                        className="h-4 w-4 text-blue-500 transition group-hover:text-blue-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </div>
+                    <div className="mt-1 text-xs text-blue-600 group-hover:text-blue-700">
+                      AI Analysis
+                    </div>
+                  </Link>
+                )}
               </div>
             </div>
           ))}
