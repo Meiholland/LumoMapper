@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { google } from "googleapis";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -47,7 +47,7 @@ function cleanCompanyName(companyName: string | null | undefined): string | null
 }
 
 async function getOrFindCompany(
-  supabase: ReturnType<typeof createClient>,
+  supabase: SupabaseClient<any, "public", any>,
   companyName: string,
 ) {
   const cleaned = cleanCompanyName(companyName);
