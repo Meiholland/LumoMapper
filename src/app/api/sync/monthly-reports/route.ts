@@ -103,7 +103,7 @@ async function getGoogleSheetsClient() {
 
   const auth = new google.auth.JWT(
     credentials.client_email,
-    null,
+    undefined,
     credentials.private_key,
     ["https://www.googleapis.com/auth/spreadsheets.readonly"],
   );
