@@ -4,7 +4,8 @@ import { getSupabaseServerClient } from "@/lib/supabase/server-client";
 import { isAdmin } from "@/lib/supabase/admin";
 import { validateUUID } from "@/lib/validation";
 import type { CategoryAxisData } from "@/app/dashboard/actions";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+// import { GoogleGenerativeAI } from "@google/generative-ai"; // Commented out - using Azure AI instead
+import { generateContentWithAzureAI } from "@/lib/azure-ai";
 
 export type QuarterlyReviewInsight = {
   title: string;
@@ -177,7 +178,9 @@ async function getAssessmentWithScores(
     const category = categoryArray[0];
     if (!category) continue;
 
-    const response = responses?.find((r) => r.question_id === question.id);
+    const response = responses?.find(
+      (r: { question_id: string; score: number }) => r.question_id === question.id,
+    );
     if (!response) continue;
 
     if (!categoryMap.has(category.id)) {
@@ -292,10 +295,23 @@ export async function generateQuarterlyReview(
     return { error: "Not authorized" };
   }
 
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return { error: "Gemini API key not configured" };
+  // Azure AI configuration
+  const azureEndpoint = process.env.AZURE_AI_ENDPOINT;
+  const azureApiKey = process.env.AZURE_AI_API_KEY;
+  const azureModelName = process.env.AZURE_AI_MODEL_NAME || "gpt-4o";
+
+  if (!azureEndpoint || !azureApiKey) {
+    return {
+      error:
+        "Azure AI not configured. Please set AZURE_AI_ENDPOINT and AZURE_AI_API_KEY environment variables.",
+    };
   }
+
+  // Keep Gemini code commented for future use
+  // const geminiApiKey = process.env.GEMINI_API_KEY;
+  // if (!geminiApiKey) {
+  //   return { error: "Gemini API key not configured" };
+  // }
 
   try {
     // Check cache first
@@ -319,8 +335,11 @@ export async function generateQuarterlyReview(
       year,
       quarter,
     );
-    if (assessmentsResult.error || !assessmentsResult.data) {
+    if ("error" in assessmentsResult && assessmentsResult.error) {
       return { error: assessmentsResult.error };
+    }
+    if (!assessmentsResult.data) {
+      return { error: "Failed to load assessments" };
     }
 
     const { current, previous, currentPeriod, previousPeriod } =
@@ -359,46 +378,63 @@ export async function generateQuarterlyReview(
       reportsData,
     );
 
-    // Call Gemini API
-    // Try different model names as Google frequently updates availability
-    const genAI = new GoogleGenerativeAI(apiKey);
-    
-    // List of models to try in order
-    // gemini-2.5-flash is the currently available model (as of 2025)
-    const modelsToTry = [
-      "gemini-2.5-flash",
-      "gemini-1.5-pro",
-      "gemini-1.5-flash", 
-      "gemini-pro",
-      "gemini-2.0-flash-exp",
-    ];
-    
-    let result;
-    let response;
-    let text;
-    let lastError: Error | null = null;
-    
-    for (const modelName of modelsToTry) {
-      try {
-        const model = genAI.getGenerativeModel({ model: modelName });
-        result = await model.generateContent(prompt);
-        response = await result.response;
-        text = response.text();
-        break; // Success, exit loop
-      } catch (error) {
-        lastError = error instanceof Error ? error : new Error(String(error));
-        // Continue to next model
-        continue;
-      }
-    }
-    
-    if (!text) {
-      // All models failed - provide helpful error message
-      const errorMessage = lastError?.message || "Unknown error";
+    // Call Azure AI API
+    let text: string;
+    try {
+      text = await generateContentWithAzureAI(prompt, {
+        endpoint: azureEndpoint,
+        apiKey: azureApiKey,
+        modelName: azureModelName,
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       return {
-        error: `Failed to generate review with Gemini API. Tried models: ${modelsToTry.join(", ")}. Error: ${errorMessage}. Please verify your GEMINI_API_KEY is valid and has access to Gemini models. You can check available models at https://ai.google.dev/models`,
+        error: `Failed to generate review with Azure AI. Error: ${errorMessage}. Please verify your AZURE_AI_ENDPOINT and AZURE_AI_API_KEY are correct.`,
       };
     }
+
+    // GEMINI CODE - Commented out for future use when quota is available
+    // // Call Gemini API
+    // // Try different model names as Google frequently updates availability
+    // const genAI = new GoogleGenerativeAI(geminiApiKey);
+    //
+    // // List of models to try in order
+    // // gemini-2.5-flash is the currently available model (as of 2025)
+    // const modelsToTry = [
+    //   "gemini-2.5-flash",
+    //   "gemini-1.5-pro",
+    //   "gemini-1.5-flash",
+    //   "gemini-pro",
+    //   "gemini-2.0-flash-exp",
+    // ];
+    //
+    // let result;
+    // let response;
+    // let text;
+    // let lastError: Error | null = null;
+    //
+    // for (const modelName of modelsToTry) {
+    //   try {
+    //     const model = genAI.getGenerativeModel({ model: modelName });
+    //     result = await model.generateContent(prompt);
+    //     response = await result.response;
+    //     text = response.text();
+    //     break; // Success, exit loop
+    //   } catch (error) {
+    //     lastError = error instanceof Error ? error : new Error(String(error));
+    //     // Continue to next model
+    //     continue;
+    //   }
+    // }
+    //
+    // if (!text) {
+    //   // All models failed - provide helpful error message
+    //   const errorMessage = lastError?.message || "Unknown error";
+    //   return {
+    //     error: `Failed to generate review with Gemini API. Tried models: ${modelsToTry.join(", ")}. Error: ${errorMessage}. Please verify your GEMINI_API_KEY is valid and has access to Gemini models. You can check available models at https://ai.google.dev/models`,
+    //   };
+    // }
 
     // Parse JSON response
     let review: QuarterlyReview;
