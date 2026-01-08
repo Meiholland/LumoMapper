@@ -9,14 +9,16 @@ The Quarterly Review feature now uses Azure AI Studio instead of Gemini (due to 
 ## Step 1: Get Your Azure AI Credentials
 
 You should already have:
-- **Endpoint**: `https://lumo-data-swedencentral-resource.services.ai.azure.com/api/projects/lumo-data-swedencentral`
+- **Endpoint**: `https://lumo-data-swedencentral-resource.openai.azure.com`
 - **API Key**: (Get from Azure Portal - see below)
+- **API Version**: `2025-04-01-preview` (or your preferred version)
 
 If you need to find these again:
 1. Go to [Azure Portal](https://portal.azure.com)
-2. Navigate to your Azure AI Studio resource
+2. Navigate to your Azure OpenAI resource
 3. Go to **Keys and Endpoint** section
-4. Copy the endpoint and one of the keys
+4. Copy the endpoint (base URL) and one of the keys
+5. Note the API version (usually `2025-04-01-preview` or similar)
 
 ## Step 2: Configure Environment Variables
 
@@ -25,10 +27,11 @@ If you need to find these again:
 Add to your `.env.local` file:
 
 ```bash
-# Azure AI Configuration
-AZURE_AI_ENDPOINT=https://lumo-data-swedencentral-resource.services.ai.azure.com/api/projects/lumo-data-swedencentral
+# Azure OpenAI Configuration
+AZURE_AI_ENDPOINT=https://lumo-data-swedencentral-resource.openai.azure.com
 AZURE_AI_API_KEY=your-azure-ai-api-key-here
 AZURE_AI_MODEL_NAME=gpt-4o
+AZURE_AI_API_VERSION=2025-04-01-preview
 ```
 
 ### For Vercel (Production)
@@ -38,15 +41,21 @@ AZURE_AI_MODEL_NAME=gpt-4o
 3. Add these variables:
 
    - **`AZURE_AI_ENDPOINT`** (Private)
-     - Value: `https://lumo-data-swedencentral-resource.services.ai.azure.com/api/projects/lumo-data-swedencentral`
+     - Value: `https://lumo-data-swedencentral-resource.openai.azure.com`
+     - This is the base endpoint URL
    
    - **`AZURE_AI_API_KEY`** (Private, Sensitive)
-     - Value: Your Azure AI API key (get from Azure Portal)
+     - Value: Your Azure OpenAI API key (get from Azure Portal)
      - Mark as **Sensitive**
    
    - **`AZURE_AI_MODEL_NAME`** (Private, Optional)
-     - Value: `gpt-4o` (or your preferred model)
+     - Value: `gpt-4o` (or your deployment name)
+     - Should match the deployment name in your Azure OpenAI resource
      - Defaults to `gpt-4o` if not set
+   
+   - **`AZURE_AI_API_VERSION`** (Private, Optional)
+     - Value: `2025-04-01-preview` (or your preferred version)
+     - Defaults to `2025-04-01-preview` if not set
 
 4. After adding, redeploy your application
 

@@ -299,6 +299,7 @@ export async function generateQuarterlyReview(
   const azureEndpoint = process.env.AZURE_AI_ENDPOINT;
   const azureApiKey = process.env.AZURE_AI_API_KEY;
   const azureModelName = process.env.AZURE_AI_MODEL_NAME || "gpt-4o";
+  const azureApiVersion = process.env.AZURE_AI_API_VERSION || "2025-04-01-preview";
 
   if (!azureEndpoint || !azureApiKey) {
     return {
@@ -385,12 +386,13 @@ export async function generateQuarterlyReview(
         endpoint: azureEndpoint,
         apiKey: azureApiKey,
         modelName: azureModelName,
+        apiVersion: azureApiVersion,
       });
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
       return {
-        error: `Failed to generate review with Azure AI. Error: ${errorMessage}. Please verify your AZURE_AI_ENDPOINT and AZURE_AI_API_KEY are correct.`,
+        error: `Failed to generate review with Azure AI. Error: ${errorMessage}. Please verify your AZURE_AI_ENDPOINT, AZURE_AI_API_KEY, and AZURE_AI_API_VERSION are correct.`,
       };
     }
 

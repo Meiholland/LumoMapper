@@ -29,10 +29,11 @@ Add these environment variables in your Vercel project settings:
 
 #### 4. `AZURE_AI_ENDPOINT`
 - **Type**: Private (server-only)
-- **Description**: Azure AI Studio endpoint URL
-- **Format**: `https://{resource}.services.ai.azure.com/api/projects/{project-name}`
-- **Example**: `https://lumo-data-swedencentral-resource.services.ai.azure.com/api/projects/lumo-data-swedencentral`
+- **Description**: Azure OpenAI endpoint base URL
+- **Format**: `https://{resource}.openai.azure.com`
+- **Example**: `https://lumo-data-swedencentral-resource.openai.azure.com`
 - **Required for**: Quarterly Review feature with AI analysis
+- **Note**: This is the base endpoint. The code will append `/openai/deployments/{model-name}/chat/completions` automatically
 
 #### 5. `AZURE_AI_API_KEY`
 - **Type**: Private (server-only, sensitive)
@@ -43,10 +44,17 @@ Add these environment variables in your Vercel project settings:
 
 #### 6. `AZURE_AI_MODEL_NAME` (Optional)
 - **Type**: Private (server-only)
-- **Description**: Azure AI model name to use
+- **Description**: Azure OpenAI deployment name to use
 - **Default**: `gpt-4o`
 - **Example**: `gpt-4o`, `gpt-4-turbo`, `gpt-35-turbo`
-- **Note**: Optional - defaults to `gpt-4o` if not specified
+- **Note**: This should match the deployment name in your Azure OpenAI resource. Defaults to `gpt-4o` if not specified
+
+#### 7. `AZURE_AI_API_VERSION` (Optional)
+- **Type**: Private (server-only)
+- **Description**: Azure OpenAI API version
+- **Default**: `2025-04-01-preview`
+- **Example**: `2025-04-01-preview`, `2024-02-15-preview`
+- **Note**: Optional - defaults to `2025-04-01-preview` if not specified
 
 ### Gemini AI (Quarterly Reviews) - Commented Out
 
@@ -115,6 +123,7 @@ Add these environment variables in your Vercel project settings:
 - [ ] `AZURE_AI_ENDPOINT` (Private) - **Required for Quarterly Reviews**
 - [ ] `AZURE_AI_API_KEY` (Private, Sensitive) - **Required for Quarterly Reviews**
 - [ ] `AZURE_AI_MODEL_NAME` (Private) - Optional, defaults to `gpt-4o`
+- [ ] `AZURE_AI_API_VERSION` (Private) - Optional, defaults to `2025-04-01-preview`
 - [ ] `GOOGLE_SHEETS_SPREADSHEET_ID` (Private) - **Required for Monthly Reports Sync**
 - [ ] `GOOGLE_SERVICE_ACCOUNT_EMAIL` (Private) - **Required for Monthly Reports Sync**
 - [ ] `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY` (Private, Sensitive) - **Required for Monthly Reports Sync**

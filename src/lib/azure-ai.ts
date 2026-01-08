@@ -1,12 +1,13 @@
 /**
- * Azure AI Studio API client
- * This module handles communication with Azure AI Studio inference API
+ * Azure OpenAI API client
+ * This module handles communication with Azure OpenAI service
  */
 
 export interface AzureAIConfig {
   endpoint: string;
   apiKey: string;
   modelName?: string;
+  apiVersion?: string;
 }
 
 export interface AzureAIResponse {
@@ -18,18 +19,42 @@ export interface AzureAIResponse {
 }
 
 /**
- * Generate content using Azure AI Studio
+ * Generate content using Azure OpenAI
  */
 export async function generateContentWithAzureAI(
   prompt: string,
   config: AzureAIConfig,
 ): Promise<string> {
-  const { endpoint, apiKey, modelName = "gpt-4o" } = config;
+  const {
+    endpoint,
+    apiKey,
+    modelName = "gpt-4o",
+    apiVersion = "2025-04-01-preview",
+  } = config;
 
-  // Azure AI Studio inference API endpoint format
-  // The endpoint should be: https://{resource}.services.ai.azure.com/api/projects/{project-name}
-  // We need to append /chat/completions for chat API
-  const apiUrl = `${endpoint}/chat/completions?api-version=2024-02-15-preview`;
+  // Azure OpenAI endpoint format:
+  // https://{resource}.openai.azure.com/openai/deployments/{deployment-name}/chat/completions
+  // OR if endpoint already includes the full path, use it directly
+  let apiUrl: string;
+  
+  if (endpoint.includes("/openai/deployments/")) {
+    // Endpoint already includes the full path
+    apiUrl = `${endpoint}/chat/completions?api-version=${apiVersion}`;
+  } else if (endpoint.includes("/chat/completions")) {
+    // Endpoint already includes chat/completions
+    apiUrl = `${endpoint}?api-version=${apiVersion}`;
+  } else {
+    // Endpoint is just the base URL, need to construct full path
+    // Extract resource name from endpoint if it's in format: https://{resource}.openai.azure.com
+    const resourceMatch = endpoint.match(/https:\/\/([^.]+)\.openai\.azure\.com/);
+    if (resourceMatch) {
+      // Standard Azure OpenAI format
+      apiUrl = `${endpoint}/openai/deployments/${modelName}/chat/completions?api-version=${apiVersion}`;
+    } else {
+      // Assume it's already a full endpoint or use as-is
+      apiUrl = `${endpoint}/chat/completions?api-version=${apiVersion}`;
+    }
+  }
 
   const response = await fetch(apiUrl, {
     method: "POST",
@@ -38,7 +63,6 @@ export async function generateContentWithAzureAI(
       "api-key": apiKey,
     },
     body: JSON.stringify({
-      model: modelName,
       messages: [
         {
           role: "user",
