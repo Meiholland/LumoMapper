@@ -82,10 +82,19 @@ export async function generateContentWithAzureAI(
 
   const data = (await response.json()) as AzureAIResponse;
 
+  // Debug logging
+  console.log("Azure AI API Response:", JSON.stringify(data, null, 2));
+  console.log("API URL used:", apiUrl);
+
   if (!data.choices || data.choices.length === 0) {
+    console.error("Azure AI API returned no choices. Full response:", data);
     throw new Error("Azure AI API returned no choices");
   }
 
-  return data.choices[0].message.content;
+  const content = data.choices[0].message.content;
+  console.log("Extracted content length:", content?.length || 0);
+  console.log("Content preview:", content?.substring(0, 200) || "No content");
+
+  return content;
 }
 

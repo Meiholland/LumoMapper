@@ -382,15 +382,26 @@ export async function generateQuarterlyReview(
     // Call Azure AI API
     let text: string;
     try {
+      console.log("Calling Azure AI with config:", {
+        endpoint: azureEndpoint,
+        modelName: azureModelName,
+        apiVersion: azureApiVersion,
+        promptLength: prompt.length,
+      });
+      
       text = await generateContentWithAzureAI(prompt, {
         endpoint: azureEndpoint,
         apiKey: azureApiKey,
         modelName: azureModelName,
         apiVersion: azureApiVersion,
       });
+      
+      console.log("Azure AI returned text length:", text?.length || 0);
+      console.log("Text preview:", text?.substring(0, 500) || "No text");
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
+      console.error("Azure AI error:", errorMessage);
       return {
         error: `Failed to generate review with Azure AI. Error: ${errorMessage}. Please verify your AZURE_AI_ENDPOINT, AZURE_AI_API_KEY, and AZURE_AI_API_VERSION are correct.`,
       };
@@ -441,11 +452,20 @@ export async function generateQuarterlyReview(
     // Parse JSON response
     let review: QuarterlyReview;
     try {
+      console.log("Attempting to parse JSON from response...");
       // Extract JSON from markdown code blocks if present
       const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/) || text.match(/```\n([\s\S]*?)\n```/);
       const jsonText = jsonMatch ? jsonMatch[1] : text;
+      console.log("JSON text to parse (first 500 chars):", jsonText.substring(0, 500));
       review = JSON.parse(jsonText);
+      console.log("Successfully parsed JSON. Review structure:", {
+        hasSummary: !!review.executive_summary,
+        insightsCount: review.insights?.length || 0,
+        recommendationsCount: review.recommendations?.length || 0,
+      });
     } catch (parseError) {
+      console.error("JSON parsing failed:", parseError);
+      console.error("Raw text that failed to parse:", text.substring(0, 1000));
       // If JSON parsing fails, return raw text as executive summary
       review = {
         executive_summary: text,
