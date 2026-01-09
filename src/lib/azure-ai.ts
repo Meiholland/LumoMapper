@@ -69,7 +69,7 @@ export async function generateContentWithAzureAI(
           content: prompt,
         },
       ],
-      max_completion_tokens: 2000,
+      max_completion_tokens: 16000, // Increased for reasoning models (gpt-5-mini uses reasoning tokens)
     }),
   });
 

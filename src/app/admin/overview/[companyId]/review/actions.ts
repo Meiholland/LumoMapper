@@ -326,9 +326,29 @@ export async function generateQuarterlyReview(
       .maybeSingle();
 
     if (!cacheError && cachedReview) {
-      // Return cached review
-      return { data: cachedReview.review_data as QuarterlyReview };
+      // Validate cached review has content
+      const review = cachedReview.review_data as QuarterlyReview;
+      const hasContent = 
+        review?.executive_summary?.trim() || 
+        (review?.insights && review.insights.length > 0) ||
+        (review?.recommendations && review.recommendations.length > 0);
+      
+      if (hasContent) {
+        console.log("✅ Using cached review (cache hit)");
+        return { data: review };
+      } else {
+        // Invalid/empty cache - delete it and regenerate
+        console.log("⚠️ Cached review is empty/invalid - clearing cache and regenerating");
+        await supabase
+          .from("quarterly_reviews")
+          .delete()
+          .eq("company_id", companyId)
+          .eq("year", year)
+          .eq("quarter", quarter);
+      }
     }
+    
+    console.log("🔄 Cache miss - generating new review with Azure AI");
 
     // Get assessments
     const assessmentsResult = await getQuarterlyAssessments(
